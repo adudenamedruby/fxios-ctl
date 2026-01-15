@@ -20,7 +20,7 @@ struct ConfigurationTests {
 
     @Test("Configuration has non-empty description")
     func description() {
-        #expect(!Configuration.description.isEmpty)
+        #expect(!Configuration.shortDescription.isEmpty)
     }
 
     @Test("About text contains name and version")
