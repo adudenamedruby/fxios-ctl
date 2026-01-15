@@ -1,14 +1,29 @@
-// The Swift Programming Language
-// https://docs.swift.org/swift-book
-// 
-// Swift Argument Parser
-// https://swiftpackageindex.com/apple/swift-argument-parser/documentation
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/
 
 import ArgumentParser
 
 @main
-struct narya: ParsableCommand {
+struct Narya: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: Configuration.name,
+        abstract: Configuration.shortDescription,
+        version: Configuration.version,
+        subcommands: [],
+        defaultSubcommand: nil
+    )
+
+    @Flag(name: .long, help: "Show version and tool information.")
+    var about = false
+
     mutating func run() throws {
-        print("Hello, world!")
+        if about {
+            print(Configuration.aboutText)
+            return
+        }
+
+        // If no flags or subcommands provided, show help
+        print(Narya.helpMessage())
     }
 }
