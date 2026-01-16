@@ -9,6 +9,9 @@ struct Bootstrap: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Bootstrap the firefox-ios repository for development.",
         discussion: """
+            By default, bootstraps Firefox. Use -p focus to bootstrap Focus instead,
+            or --all to bootstrap both.
+
             For Firefox (-p firefox), bootstrap will:
               • Remove .venv directories
               • Download and run Nimbus FML bootstrap script
@@ -19,8 +22,6 @@ struct Bootstrap: ParsableCommand {
               • Download and run Nimbus FML bootstrap script
               • Clone shavar-prod-lists repository
               • Build BrowserKit
-
-            Use --all to bootstrap both Firefox and Focus.
             """
     )
 
@@ -39,12 +40,6 @@ struct Bootstrap: ParsableCommand {
     var force = false
 
     mutating func run() throws {
-        // If neither product nor --all specified, show help
-        guard product != nil || all else {
-            print(Bootstrap.helpMessage())
-            return
-        }
-
         // Validate we're in a firefox-ios repository and get repo root
         let repo = try RepoDetector.requireValidRepo()
 
@@ -55,8 +50,8 @@ struct Bootstrap: ParsableCommand {
         if all {
             try bootstrapFirefox(repoRoot: repo.root)
             try bootstrapFocus(repoRoot: repo.root)
-        } else if let product = product {
-            switch product {
+        } else {
+            switch product ?? .firefox {
             case .firefox:
                 try bootstrapFirefox(repoRoot: repo.root)
             case .focus:
