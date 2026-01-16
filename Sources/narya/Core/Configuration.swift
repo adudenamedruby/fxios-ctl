@@ -6,17 +6,17 @@ import Foundation
 
 enum Configuration {
     static let name = "narya"
-    static let version = "20260116.2"
+    static let version = "20260116.3"
     static let shortDescription = "A helper CLI for the firefox-ios repository"
     static let longDescription = """
         On the Origins of Narya
 
         In the days of the making of the Rings, when the skill of the Elven-smiths
         was yet unmarred, three Rings of Power were wrought, untainted by the shadow
-        of Sauron: a right of air, a ring of water, and a ring of red fire, whose name
-        was Narya. It was not forged for dominion nor to bend wills, but for the
-        kindling of hearts long pressed by weariness and fear, a font of guidance
-        and endurance in the shadow of the long dark.
+        of Sauron: a ring of air, a ring of water, and a ring of red fire, whose name
+        was Narya. Narya was not forged for dominion, nor to bend wills of others,
+        but for the kindling of hearts long pressed by weariness and fear, a font
+        of guidance and endurance in the shadow of the long dark.
 
         Long did Narya remain with Círdan the Shipwright, who kept watch upon the
         Havens while the years of the world flowed by. Yet when Mithrandir came out
