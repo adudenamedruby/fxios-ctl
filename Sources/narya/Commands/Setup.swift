@@ -42,7 +42,6 @@ struct Setup: ParsableCommand {
         try ShellRunner.run("git", arguments: arguments)
         print("💍 Cloning done.\n")
 
-        // MARK: - TEMPORARY: Create .narya.yaml marker file
         // TODO: Remove this block once .narya.yaml is added to the firefox-ios repository
         let markerPath = URL(fileURLWithPath: cloneDir)
             .appendingPathComponent(Configuration.markerFileName)
@@ -61,7 +60,7 @@ struct Setup: ParsableCommand {
 
         // Run bootstrap
         var bootstrap = Bootstrap()
-        bootstrap.product = .firefox
+        bootstrap.all = true
         bootstrap.force = false
         try bootstrap.run()
     }

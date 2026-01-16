@@ -9,9 +9,6 @@ struct Bootstrap: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Bootstrap the firefox-ios repository for development.",
         discussion: """
-            This command must be run from within a firefox-ios repository.
-            Use -p to specify which product to bootstrap.
-
             For Firefox (-p firefox), bootstrap will:
               • Remove .venv directories
               • Download and run Nimbus FML bootstrap script
@@ -22,6 +19,8 @@ struct Bootstrap: ParsableCommand {
               • Download and run Nimbus FML bootstrap script
               • Clone shavar-prod-lists repository
               • Build BrowserKit
+
+            Use --all to bootstrap both Firefox and Focus.
             """
     )
 
@@ -30,15 +29,18 @@ struct Bootstrap: ParsableCommand {
         case focus
     }
 
-    @Option(name: [.short, .long], help: "Product to bootstrap (required): firefox or focus.")
+    @Option(name: [.short, .long], help: "Product to bootstrap: firefox or focus.")
     var product: Product?
+
+    @Flag(name: .long, help: "Bootstrap both Firefox and Focus.")
+    var all = false
 
     @Flag(name: .long, help: "Force a re-build by deleting the build directory. Only applies to firefox.")
     var force = false
 
     mutating func run() throws {
-        // If no product specified, show help
-        guard let product = product else {
+        // If neither product nor --all specified, show help
+        guard product != nil || all else {
             print(Bootstrap.helpMessage())
             return
         }
@@ -50,11 +52,16 @@ struct Bootstrap: ParsableCommand {
         try ToolChecker.requireNode()
         try ToolChecker.requireNpm()
 
-        switch product {
-        case .firefox:
+        if all {
             try bootstrapFirefox(repoRoot: repo.root)
-        case .focus:
             try bootstrapFocus(repoRoot: repo.root)
+        } else if let product = product {
+            switch product {
+            case .firefox:
+                try bootstrapFirefox(repoRoot: repo.root)
+            case .focus:
+                try bootstrapFocus(repoRoot: repo.root)
+            }
         }
     }
 
