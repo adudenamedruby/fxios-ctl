@@ -71,6 +71,9 @@ struct Run: ParsableCommand {
     @Flag(name: [.short, .long], help: "Minimize output (show only errors and summary).")
     var quiet = false
 
+    @Flag(name: .long, help: "Print the commands instead of running them.")
+    var expose = false
+
     // MARK: - Run
 
     mutating func run() throws {
@@ -92,6 +95,16 @@ struct Run: ParsableCommand {
 
         // Determine simulator
         let simulatorSelection = try resolveSimulator()
+
+        // Handle --expose: print commands instead of running
+        if expose {
+            printExposedCommands(
+                product: buildProduct,
+                projectPath: projectPath,
+                simulator: simulatorSelection
+            )
+            return
+        }
 
         // Print run info
         if !quiet {
@@ -345,5 +358,68 @@ struct Run: ParsableCommand {
         }
 
         return appPath.path
+    }
+
+    // MARK: - Expose Command
+
+    private func printExposedCommands(
+        product: BuildProduct,
+        projectPath: URL,
+        simulator: SimulatorSelection
+    ) {
+        // Print resolve command if applicable
+        if !skipResolve {
+            let resolveArgs = [
+                "-resolvePackageDependencies",
+                "-onlyUsePackageVersionsFromResolvedFile",
+                "-project", projectPath.path
+            ]
+            print("# Resolve Swift Package dependencies")
+            print(formatCommand("xcodebuild", arguments: resolveArgs))
+            print("")
+        }
+
+        // Print build command
+        var buildArgs = buildXcodebuildArgs(
+            product: product,
+            projectPath: projectPath,
+            simulator: simulator
+        )
+        buildArgs.append("build")
+
+        print("# Build \(product.scheme)")
+        print(formatCommand("xcodebuild", arguments: buildArgs))
+        print("")
+
+        // Print simctl commands
+        print("# Boot simulator")
+        print("xcrun simctl boot '\(simulator.simulator.udid)'")
+        print("")
+
+        print("# Open Simulator.app")
+        print("open -a Simulator")
+        print("")
+
+        // Note: We can't know the exact app path without building
+        let config = configuration ?? product.defaultConfiguration
+        let appPathExample = "~/Library/Developer/Xcode/DerivedData/.../Build/Products/\(config)-iphonesimulator/\(product.scheme).app"
+
+        print("# Install app (path determined after build)")
+        print("xcrun simctl install '\(simulator.simulator.udid)' '\(appPathExample)'")
+        print("")
+
+        print("# Launch app")
+        print("xcrun simctl launch '\(simulator.simulator.udid)' '\(product.bundleIdentifier)'")
+    }
+
+    private func formatCommand(_ command: String, arguments: [String]) -> String {
+        let escapedArgs = arguments.map { arg -> String in
+            // Quote arguments that contain spaces or special characters
+            if arg.contains(" ") || arg.contains("=") {
+                return "'\(arg)'"
+            }
+            return arg
+        }
+        return "\(command) \(escapedArgs.joined(separator: " \\\n    "))"
     }
 }

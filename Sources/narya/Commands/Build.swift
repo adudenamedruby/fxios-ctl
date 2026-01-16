@@ -135,6 +135,9 @@ struct Build: ParsableCommand {
     @Flag(name: .long, help: "List available iOS simulators.")
     var listSimulators = false
 
+    @Flag(name: .long, help: "Print the xcodebuild command instead of running it.")
+    var expose = false
+
     // MARK: - Run
 
     mutating func run() throws {
@@ -164,6 +167,16 @@ struct Build: ParsableCommand {
         if !device {
             try ToolChecker.requireSimctl()
             simulatorSelection = try resolveSimulator()
+        }
+
+        // Handle --expose: print commands instead of running
+        if expose {
+            printExposedCommands(
+                product: buildProduct,
+                projectPath: projectPath,
+                simulator: simulatorSelection
+            )
+            return
         }
 
         // Print build info
@@ -398,5 +411,47 @@ struct Build: ParsableCommand {
         } catch {
             // Ignore errors finding default
         }
+    }
+
+    // MARK: - Expose Command
+
+    private func printExposedCommands(
+        product: BuildProduct,
+        projectPath: URL,
+        simulator: SimulatorSelection?
+    ) {
+        // Print resolve command if applicable
+        if !skipResolve {
+            let resolveArgs = [
+                "-resolvePackageDependencies",
+                "-onlyUsePackageVersionsFromResolvedFile",
+                "-project", projectPath.path
+            ]
+            print("# Resolve Swift Package dependencies")
+            print(formatCommand("xcodebuild", arguments: resolveArgs))
+            print("")
+        }
+
+        // Print build command
+        var buildArgs = buildXcodebuildArgs(
+            product: product,
+            projectPath: projectPath,
+            simulator: simulator
+        )
+        buildArgs.append(forTesting ? "build-for-testing" : "build")
+
+        print("# Build \(product.scheme)")
+        print(formatCommand("xcodebuild", arguments: buildArgs))
+    }
+
+    private func formatCommand(_ command: String, arguments: [String]) -> String {
+        let escapedArgs = arguments.map { arg -> String in
+            // Quote arguments that contain spaces or special characters
+            if arg.contains(" ") || arg.contains("=") {
+                return "'\(arg)'"
+            }
+            return arg
+        }
+        return "\(command) \(escapedArgs.joined(separator: " \\\n    "))"
     }
 }

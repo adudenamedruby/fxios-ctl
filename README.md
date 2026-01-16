@@ -25,6 +25,7 @@ NOTE: Installation instructions to follow once the tap exists
 | `narya bootstrap`      | Bootstrap the repository for Firefox or Focus development |
 | `narya build`          | Build Firefox, Focus, or Klar for development             |
 | `narya run`            | Build and launch in the iOS Simulator                     |
+| `narya test`           | Run tests for Firefox, Focus, or Klar                     |
 | `narya clean`          | Clean up cached or generated files                        |
 | `narya nimbus`         | Manage Nimbus feature configuration files                 |
 | `narya telemetry`      | Update telemetry configuration files                      |
@@ -48,6 +49,7 @@ narya build --clean                 # Clean before building
 narya build --skip-resolve          # Skip SPM package resolution
 narya build -q                      # Quiet mode (minimal output)
 narya build --list-simulators       # Show available simulators
+narya build --expose                # Print xcodebuild command without running
 ```
 
 ### run
@@ -60,6 +62,30 @@ narya run -p focus                  # Build and run Focus
 narya run --simulator "iPhone 16 Pro"
 narya run --clean                   # Clean before building
 narya run -q                        # Quiet mode
+narya run --expose                  # Print commands without running
+```
+
+### test
+
+Runs tests for Firefox, Focus, or Klar using xcodebuild. By default, runs unit tests for the product specified in `.narya.yaml` (`default_build_product`), or Firefox if not configured.
+
+Test plans available:
+- `unit` - Unit tests (default)
+- `smoke` - Smoke/UI tests
+- `accessibility` - Accessibility tests (Firefox only)
+- `performance` - Performance tests (Firefox only)
+- `full` - Full functional tests (Focus/Klar only)
+
+```bash
+narya test                          # Run unit tests for Firefox
+narya test -p focus                 # Run unit tests for Focus
+narya test --plan smoke             # Run smoke tests
+narya test --build-first            # Build for testing, then run tests
+narya test --filter "TabTests"      # Run tests matching filter
+narya test --retries 2              # Retry failed tests up to 2 times
+narya test --simulator "iPhone 16 Pro"
+narya test -q                       # Quiet mode
+narya test --expose                 # Print xcodebuild command without running
 ```
 
 ### bootstrap
@@ -162,6 +188,7 @@ Sources/narya/
     ├── Run.swift             # Build and launch in iOS Simulator
     ├── Setup.swift           # Clone + bootstrap command
     ├── Telemetry.swift       # Update Glean telemetry config files
+    ├── Test.swift            # Run tests with xcodebuild
     ├── Update.swift          # Parent command for update subcommands
     └── Version.swift         # Update version numbers
 ```

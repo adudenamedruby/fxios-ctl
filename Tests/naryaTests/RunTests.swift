@@ -110,6 +110,12 @@ struct RunTests {
         #expect(command.quiet == true)
     }
 
+    @Test("Can parse expose flag")
+    func parseExpose() throws {
+        let command = try Run.parse(["--expose"])
+        #expect(command.expose == true)
+    }
+
     @Test("Default values are correct")
     func defaultValues() throws {
         let command = try Run.parse([])
@@ -121,6 +127,7 @@ struct RunTests {
         #expect(command.skipResolve == false)
         #expect(command.clean == false)
         #expect(command.quiet == false)
+        #expect(command.expose == false)
     }
 
     @Test("Can combine multiple flags")

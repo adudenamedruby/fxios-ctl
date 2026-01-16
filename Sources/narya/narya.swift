@@ -18,6 +18,7 @@ struct Narya: ParsableCommand {
             Run.self,
             Setup.self,
             Telemetry.self,
+            Test.self,
             Update.self,
         ],
         defaultSubcommand: nil
