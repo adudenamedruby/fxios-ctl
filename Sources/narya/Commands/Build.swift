@@ -85,7 +85,7 @@ struct Build: ParsableCommand {
 
     // MARK: - Product Selection
 
-    @Option(name: [.short, .long], help: "Product to build <firefox|focus|klar>")
+    @Option(name: [.short, .long], help: "Product to build")
     var product: BuildProduct?
 
     // MARK: - Build Type
@@ -100,6 +100,9 @@ struct Build: ParsableCommand {
 
     @Option(name: [.short, .long], help: "Simulator name (default: auto-detect latest).")
     var simulator: String?
+
+    @Flag(name: .long, help: "List available iOS simulators.")
+    var listSimulators = false
 
     @Option(name: .long, help: "iOS version for simulator (default: latest).")
     var os: String?
@@ -124,9 +127,6 @@ struct Build: ParsableCommand {
     var quiet = false
 
     // MARK: - Info
-
-    @Flag(name: .long, help: "List available iOS simulators.")
-    var listSimulators = false
 
     @Flag(name: .long, help: "Print the xcodebuild command instead of running it.")
     var expose = false

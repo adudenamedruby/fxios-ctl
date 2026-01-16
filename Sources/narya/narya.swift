@@ -14,6 +14,7 @@ struct Narya: ParsableCommand {
             Bootstrap.self,
             Build.self,
             Clean.self,
+            Lint.self,
             Nimbus.self,
             Run.self,
             Setup.self,

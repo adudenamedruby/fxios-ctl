@@ -30,6 +30,7 @@ NOTE: Installation instructions to follow once the tap exists
 | `narya nimbus`    | Manage Nimbus feature configuration files                 |
 | `narya telemetry` | Update telemetry configuration files                      |
 | `narya version`   | Display or update version numbers across the repository   |
+| `narya lint`      | Run SwiftLint on the codebase                             |
 
 ### build
 
@@ -143,6 +144,22 @@ narya version --set 123.4         # Explicitly set version
 narya version --verify            # Check version consistency across files
 ```
 
+### lint
+
+Runs SwiftLint on the codebase. By default, lints only files changed compared to the main branch.
+
+```bash
+narya lint                        # Lint changed files in firefox-ios
+narya lint -p focus               # Lint changed files in focus-ios
+narya lint --all                  # Lint entire project
+narya lint --changed              # Lint only changed files (default)
+narya lint --strict               # Treat warnings as errors
+narya lint -q                     # Quiet mode (show only counts)
+narya lint --fix                  # Auto-correct fixable violations
+narya lint --fix --changed        # Fix only changed files
+narya lint info                   # Show SwiftLint version and rules
+```
+
 ## Configuration
 
 narya uses a `.narya.yaml` file in the repository root for configuration.
@@ -190,6 +207,7 @@ Sources/narya/
     ├── Bootstrap.swift       # Bootstrap Firefox/Focus for development
     ├── Build.swift           # Build Firefox/Focus/Klar with xcodebuild
     ├── Clean.swift           # Clean build artifacts and caches
+    ├── Lint.swift            # Run SwiftLint on the codebase
     ├── Nimbus.swift          # Manage Nimbus feature config files
     ├── Run.swift             # Build and launch in iOS Simulator
     ├── Setup.swift           # Clone + bootstrap command
