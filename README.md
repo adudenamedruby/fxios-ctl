@@ -2,7 +2,7 @@
 
 A CLI tool for managing tasks in the [firefox-ios](https://github.com/mozilla-mobile/firefox-ios) repository.
 
-Named after Narya, the Ring of Fire, one of the Three Rings of Power given to the Elves.
+Named after Narya, the Ring of Fire, and one of the three Rings of the Elves, forged by Celebrimbor of the Gwaith-i-Mírdain, and later borne by Gandalf.
 
 ## Goals
 
@@ -29,7 +29,100 @@ narya is available through brew.
 
 NOTE: Installation instructions to follow once the tap exists
 
-## Commands
+## Configuration
+
+narya uses a `.narya.yaml` file in the repository root for configuration.
+
+```yaml
+# Required: identifies this as a narya-compatible repository
+project: firefox-ios
+
+# Optional: default product for bootstrap command (firefox or focus)
+default_bootstrap: firefox
+
+# Optional: default product for build/run commands (firefox, focus, or klar)
+default_build_product: firefox
+```
+
+| Field                   | Required | Description                                                                       |
+| ----------------------- | -------- | --------------------------------------------------------------------------------- |
+| `project`               | Yes      | Must be `firefox-ios`                                                             |
+| `default_bootstrap`     | No       | Default product for `narya bootstrap` (`firefox` or `focus`)                      |
+| `default_build_product` | No       | Default product for `narya build` and `narya run` (`firefox`, `focus`, or `klar`) |
+
+## Output Format
+
+All narya output is handled by the `Herald`. The maintain clarity between `narya`'s output and the output of tools/commands it wraps, we have a standard way of presenting output. The beginning of every action block from `narya` is preceeded by a 💍 and intedent afterwards. To maintain this format, always `reset()` the `Herald` before beginning a new action.
+
+| Function  | Meaning                           |
+| --------- | --------------------------------- |
+| reset()   | Begin a new block to output.      |
+| declare() | Used to output a regular block    |
+| warn()    | Used to output errors or warnings |
+
+## Architecture
+
+```
+Sources/narya/
+├── narya.swift               # Entry point (@main)
+├── Core/                     # Where tools and utilities should be placed
+│   ├── Configuration.swift   # App constants (name, version, etc.)
+│   ├── Herald.swift          # Formatted output handling (💍/▌ prefixes)
+│   ├── RepoDetector.swift    # Validates firefox-ios repository, loads .narya.yaml
+│   ├── ShellRunner.swift     # Shell command execution
+│   ├── SimulatorManager.swift # iOS Simulator detection and management
+│   └── ToolChecker.swift     # Tool availability checks (git, node, npm, xcodebuild)
+└── Commands/
+    ├── Bootstrap.swift       # Bootstrap Firefox/Focus for development
+    ├── Build.swift           # Build Firefox/Focus/Klar with xcodebuild
+    ├── Clean.swift           # Clean build artifacts and caches
+    ├── Lint.swift            # Run SwiftLint on the codebase
+    ├── Nimbus.swift          # Manage Nimbus feature config files
+    ├── Run.swift             # Build and launch in iOS Simulator
+    ├── Setup.swift           # Clone + bootstrap command
+    ├── Telemetry.swift       # Update Glean telemetry config files
+    ├── Test.swift            # Run tests with xcodebuild
+    └── Version.swift         # Display or update version numbers
+```
+
+## Development & Contribution
+
+Contributing to `narya` is easy: please fork the repo, make your changes, and submit a PR.
+
+For a discussion of the design thoughts behind `narya`, and what to add, please first read the (GUIDELINES)[https://github.com/adudenamedruby/narya/blob/main/GUIDELINES.md] document.
+
+### Dev Notes
+
+```bash
+# Build
+swift build
+
+# Run locally
+swift run narya
+```
+
+### Testing Notes
+
+Tests use Swift Testing framework (`@Test`, `@Suite`, `#expect`).
+
+```bash
+# Run all tests (must use --no-parallel)
+swift test --no-parallel
+```
+
+**Important:** Tests must be run with `--no-parallel` to avoid concurrency issues. Many tests change the current working directory, which is global process state. Running tests in parallel can cause cross-contamination between test suites.
+
+Any new feature or command must include corresponding tests. Tests should cover:
+
+- Command configuration (abstract, discussion text)
+- Flag/option validation
+- Expected behavior with valid inputs
+- Error handling for invalid inputs
+- Edge cases
+
+See existing test files in `Tests/naryaTests/` for examples.
+
+## Currently Supported Commands
 
 | Command           | Description                                               |
 | ----------------- | --------------------------------------------------------- |
@@ -171,99 +264,6 @@ narya lint --fix                  # Auto-correct fixable violations
 narya lint --fix --changed        # Fix only changed files
 narya lint info                   # Show SwiftLint version and rules
 ```
-
-## Configuration
-
-narya uses a `.narya.yaml` file in the repository root for configuration.
-
-```yaml
-# Required: identifies this as a narya-compatible repository
-project: firefox-ios
-
-# Optional: default product for bootstrap command (firefox or focus)
-default_bootstrap: firefox
-
-# Optional: default product for build/run commands (firefox, focus, or klar)
-default_build_product: firefox
-```
-
-| Field                   | Required | Description                                                                       |
-| ----------------------- | -------- | --------------------------------------------------------------------------------- |
-| `project`               | Yes      | Must be `firefox-ios`                                                             |
-| `default_bootstrap`     | No       | Default product for `narya bootstrap` (`firefox` or `focus`)                      |
-| `default_build_product` | No       | Default product for `narya build` and `narya run` (`firefox`, `focus`, or `klar`) |
-
-## Output Format
-
-All narya output is handled by the `Herald`. The maintain clarity between `narya`'s output and the output of tools/commands it wraps, we have a standard way of presenting output. The beginning of every action block from `narya` is preceeded by a 💍 and intedent afterwards. To maintain this format, always `reset()` the `Herald` before beginning a new action.
-
-| Function  | Meaning                           |
-| --------- | --------------------------------- |
-| reset()   | Begin a new block to output.      |
-| declare() | Used to output a regular block    |
-| warn()    | Used to output errors or warnings |
-
-## Architecture
-
-```
-Sources/narya/
-├── narya.swift               # Entry point (@main)
-├── Core/
-│   ├── Configuration.swift   # App constants (name, version, etc.)
-│   ├── Herald.swift          # Formatted output handling (💍/▌ prefixes)
-│   ├── RepoDetector.swift    # Validates firefox-ios repository, loads .narya.yaml
-│   ├── ShellRunner.swift     # Shell command execution
-│   ├── SimulatorManager.swift # iOS Simulator detection and management
-│   └── ToolChecker.swift     # Tool availability checks (git, node, npm, xcodebuild)
-└── Commands/
-    ├── Bootstrap.swift       # Bootstrap Firefox/Focus for development
-    ├── Build.swift           # Build Firefox/Focus/Klar with xcodebuild
-    ├── Clean.swift           # Clean build artifacts and caches
-    ├── Lint.swift            # Run SwiftLint on the codebase
-    ├── Nimbus.swift          # Manage Nimbus feature config files
-    ├── Run.swift             # Build and launch in iOS Simulator
-    ├── Setup.swift           # Clone + bootstrap command
-    ├── Telemetry.swift       # Update Glean telemetry config files
-    ├── Test.swift            # Run tests with xcodebuild
-    └── Version.swift         # Display or update version numbers
-```
-
-## Development & Contribution
-
-Contributing to `narya` is easy: please fork the repo, make your changes, and submit a PR.
-
-### Dev Notes
-
-```bash
-# Build
-swift build
-
-# Run locally
-swift run narya
-```
-
-### Testing Notes
-
-Tests use Swift Testing framework (`@Test`, `@Suite`, `#expect`).
-
-```bash
-# Run all tests (must use --no-parallel)
-swift test --no-parallel
-```
-
-**Important:** Tests must be run with `--no-parallel` to avoid concurrency issues. Many tests change the current working directory, which is global process state. Running tests in parallel can cause cross-contamination between test suites.
-
-Any new feature or command must include corresponding tests. Tests should cover:
-
-- Command configuration (abstract, discussion text)
-- Flag/option validation
-- Expected behavior with valid inputs
-- Error handling for invalid inputs
-- Edge cases
-
-See existing test files in `Tests/naryaTests/` for examples.
-
-### Guidelines for adding functionality
 
 ## License
 
