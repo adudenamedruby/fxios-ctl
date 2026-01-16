@@ -24,6 +24,7 @@ Installation instructions to follow once the tap exists
 | `narya setup` | Clone and bootstrap the firefox-ios repository |
 | `narya bootstrap` | Bootstrap the repository for Firefox or Focus development |
 | `narya clean` | Clean up cached or generated files |
+| `narya nimbus` | Manage Nimbus feature configuration files |
 | `narya telemetry` | Update telemetry configuration files |
 | `narya update version` | Update version numbers across the repository |
 
@@ -48,6 +49,15 @@ narya clean -p              # Reset and resolve Swift packages
 narya clean -b              # Delete .build directory
 narya clean -d              # Delete DerivedData
 narya clean --all           # Clean everything
+```
+
+### nimbus
+
+Manages Nimbus feature configuration files. Updates the `include` block in `nimbus.fml.yaml` with feature files from the `nimbus-features/` directory.
+
+```bash
+narya nimbus --update              # Refresh nimbus.fml.yaml include block
+narya nimbus --add newFeature      # Add new feature YAML (appends "Feature" if needed)
 ```
 
 ### telemetry
@@ -108,6 +118,7 @@ Sources/narya/
 └── Commands/
     ├── Bootstrap.swift      # Bootstrap Firefox/Focus for development
     ├── Clean.swift          # Clean build artifacts and caches
+    ├── Nimbus.swift         # Manage Nimbus feature config files
     ├── Setup.swift          # Clone + bootstrap command
     ├── Telemetry.swift      # Update Glean telemetry config files
     ├── Update.swift         # Parent command for update subcommands
