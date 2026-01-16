@@ -4,6 +4,18 @@ A CLI tool for managing tasks in the [firefox-ios](https://github.com/mozilla-mo
 
 Named after Narya, the Ring of Fire, one of the Three Rings of Power given to the Elves.
 
+## Goals
+
+The goals of this tool are simple:
+
+1. Provide easily reproducible commands for all developers/CI
+2. Provide a central place for important utilities for managing the firefox-ios repo
+3. Provide a thoroughly documented experience to reduce tribal knowledge
+4. Provide a simple, indirect way for new developers to discover tooling used in Swift development
+5. Be dope by being ridiculouly helpful
+
+If a command doesn't materially achieve one of these goals, it likely shouldn't be part of `narya`
+
 ## Requirements
 
 - macOS 13+
@@ -21,16 +33,16 @@ NOTE: Installation instructions to follow once the tap exists
 
 | Command           | Description                                               |
 | ----------------- | --------------------------------------------------------- |
-| `narya setup`     | Clone and bootstrap the firefox-ios repository            |
 | `narya bootstrap` | Bootstrap the repository for Firefox or Focus development |
 | `narya build`     | Build Firefox, Focus, or Klar for development             |
-| `narya run`       | Build and launch in the iOS Simulator                     |
-| `narya test`      | Run tests for Firefox, Focus, or Klar                     |
 | `narya clean`     | Clean up cached or generated files                        |
-| `narya nimbus`    | Manage Nimbus feature configuration files                 |
-| `narya telemetry` | Update telemetry configuration files                      |
-| `narya version`   | Display or update version numbers across the repository   |
 | `narya lint`      | Run SwiftLint on the codebase                             |
+| `narya nimbus`    | Manage Nimbus feature configuration files                 |
+| `narya run`       | Build and launch in the iOS Simulator                     |
+| `narya setup`     | Clone and bootstrap the firefox-ios repository            |
+| `narya telemetry` | Update telemetry configuration files                      |
+| `narya test`      | Run tests for Firefox, Focus, or Klar                     |
+| `narya version`   | Display or update version numbers across the repository   |
 
 ### build
 
@@ -250,6 +262,8 @@ Any new feature or command must include corresponding tests. Tests should cover:
 - Edge cases
 
 See existing test files in `Tests/naryaTests/` for examples.
+
+### Guidelines for adding functionality
 
 ## License
 
