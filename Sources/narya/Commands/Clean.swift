@@ -23,6 +23,9 @@ struct Clean: ParsableCommand {
     @Flag(name: [.short, .long], help: "Clean everything (packages, build, and derived data).")
     var all = false
 
+    @Flag(name: .long, help: "Print the commands instead of running them.")
+    var expose = false
+
     mutating func run() throws {
         // If no flags specified, show help
         guard packages || build || derivedData || all else {
@@ -34,6 +37,12 @@ struct Clean: ParsableCommand {
 
         // Validate we're in a firefox-ios repository and get repo root
         let repo = try RepoDetector.requireValidRepo()
+
+        // Handle --expose: print commands instead of running
+        if expose {
+            printExposedCommands(repoRoot: repo.root)
+            return
+        }
 
         if build || all {
             try cleanBuild(repoRoot: repo.root)
@@ -85,5 +94,44 @@ struct Clean: ParsableCommand {
         try ShellRunner.run("swift", arguments: ["package", "resolve"], workingDirectory: repoRoot)
 
         Herald.declare("Swift packages cleaned!")
+    }
+
+    // MARK: - Expose Command
+
+    private func printExposedCommands(repoRoot: URL) {
+        let fileManager = FileManager.default
+
+        if build || all {
+            let buildDir = repoRoot.appendingPathComponent(".build")
+            print("# Remove .build directory")
+            print(formatCommand("rm", arguments: ["-rf", buildDir.path]))
+            print("")
+        }
+
+        if derivedData || all {
+            let derivedDataDir = fileManager.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library/Developer/Xcode/DerivedData")
+            print("# Remove DerivedData directory")
+            print(formatCommand("rm", arguments: ["-rf", derivedDataDir.path]))
+            print("")
+        }
+
+        if packages || all {
+            print("# Reset Swift packages")
+            print(formatCommand("swift", arguments: ["package", "reset"]))
+            print("")
+            print("# Resolve Swift packages")
+            print(formatCommand("swift", arguments: ["package", "resolve"]))
+        }
+    }
+
+    private func formatCommand(_ command: String, arguments: [String]) -> String {
+        let escapedArgs = arguments.map { arg -> String in
+            if arg.contains(" ") || arg.contains("=") {
+                return "'\(arg)'"
+            }
+            return arg
+        }
+        return "\(command) \(escapedArgs.joined(separator: " \\\n    "))"
     }
 }

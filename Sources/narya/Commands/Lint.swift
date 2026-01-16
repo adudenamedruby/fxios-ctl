@@ -5,20 +5,6 @@
 import ArgumentParser
 import Foundation
 
-// MARK: - Lint Product
-
-enum LintProduct: String, ExpressibleByArgument, CaseIterable {
-    case firefox
-    case focus
-
-    var directory: String {
-        switch self {
-        case .firefox: return "firefox-ios"
-        case .focus: return "focus-ios"
-        }
-    }
-}
-
 // MARK: - Lint Errors
 
 enum LintError: Error, CustomStringConvertible {
@@ -45,8 +31,8 @@ struct Lint: ParsableCommand {
         commandName: "lint",
         abstract: "Run SwiftLint on the codebase.",
         discussion: """
-            Runs SwiftLint on the specified product. By default, lints only files \
-            changed compared to the main branch.
+            By default, lints only Swift files changed compared to the main branch. \
+            Use --all to run swiftlint on the entire codebase.
 
             This is not meant to replace swiftlint; merely be a simplified \
             entry-point for development. Please consult swiftlint for the full \
@@ -55,17 +41,12 @@ struct Lint: ParsableCommand {
         subcommands: [LintInfo.self]
     )
 
-    // MARK: - Product Selection
-
-    @Option(name: [.short, .long], help: "Product to lint: firefox or focus.")
-    var product: LintProduct = .firefox
-
     // MARK: - Scope
 
     @Flag(name: [.short, .long], help: "Lint only files changed compared to main branch (default).")
     var changed = false
 
-    @Flag(name: [.short, .long], help: "Lint the entire project instead of just changed files.")
+    @Flag(name: [.short, .long], help: "Lint the entire codebase (runs swiftlint at repo root).")
     var all = false
 
     // MARK: - Options
@@ -79,6 +60,9 @@ struct Lint: ParsableCommand {
     @Flag(name: .long, help: "Automatically correct fixable violations.")
     var fix = false
 
+    @Flag(name: .long, help: "Print the commands instead of running them.")
+    var expose = false
+
     // MARK: - Run
 
     mutating func run() throws {
@@ -90,43 +74,45 @@ struct Lint: ParsableCommand {
         // Check for swiftlint
         try requireSwiftlint()
 
-        // Determine the target directory
-        let targetDir = repo.root.appendingPathComponent(product.directory)
-        guard FileManager.default.fileExists(atPath: targetDir.path) else {
-            throw ValidationError("💥💍 Directory not found: \(product.directory)")
-        }
-
         // Determine if we should lint all or just changed files
         // Default is changed (unless --all is specified)
         let lintAll = all || (!changed && !all && fix)  // --fix implies --all unless --changed specified
 
+        // Handle --expose: print commands instead of running
+        if expose {
+            printExposedCommands(lintAll: lintAll, repoRoot: repo.root)
+            return
+        }
+
         if fix {
-            try runFix(targetDir: targetDir, lintAll: lintAll, repoRoot: repo.root)
+            try runFix(lintAll: lintAll, repoRoot: repo.root)
         } else {
-            try runLint(targetDir: targetDir, lintAll: lintAll, repoRoot: repo.root)
+            try runLint(lintAll: lintAll, repoRoot: repo.root)
         }
     }
 
     // MARK: - Lint
 
-    private func runLint(targetDir: URL, lintAll: Bool, repoRoot: URL) throws {
-        var args: [String] = ["lint"]
-
-        if strict {
-            args.append("--strict")
-        }
-
-        if quiet {
-            args.append("--quiet")
-        }
-
+    private func runLint(lintAll: Bool, repoRoot: URL) throws {
         if lintAll {
-            Herald.declare("Linting all files in \(product.directory)...")
-            args.append("--path")
-            args.append(targetDir.path)
+            Herald.declare("Linting entire codebase...")
+
+            do {
+                try ShellRunner.run("swiftlint", arguments: [], workingDirectory: repoRoot)
+                Herald.declare("Linting complete!")
+            } catch let error as ShellRunnerError {
+                if case .commandFailed(_, let exitCode) = error {
+                    if strict {
+                        throw LintError.lintFailed(exitCode: exitCode)
+                    }
+                    Herald.warn("Linting found violations (exit code \(exitCode))")
+                } else {
+                    throw error
+                }
+            }
         } else {
-            Herald.declare("Linting changed files in \(product.directory)...")
-            let changedFiles = try getChangedSwiftFiles(in: targetDir, repoRoot: repoRoot)
+            Herald.declare("Linting changed files...")
+            let changedFiles = try getChangedSwiftFiles(repoRoot: repoRoot)
 
             if changedFiles.isEmpty {
                 Herald.declare("No changed Swift files found.")
@@ -135,39 +121,62 @@ struct Lint: ParsableCommand {
 
             Herald.declare("Found \(changedFiles.count) changed file(s)")
 
-            // SwiftLint can take files directly
-            args.append(contentsOf: changedFiles)
-        }
+            let configPath = repoRoot.appendingPathComponent(".swiftlint.yaml").path
 
-        do {
-            try ShellRunner.run("swiftlint", arguments: args, workingDirectory: repoRoot)
-            Herald.declare("Linting complete!")
-        } catch let error as ShellRunnerError {
-            if case .commandFailed(_, let exitCode) = error {
-                // SwiftLint returns non-zero for violations in strict mode
+            // Lint each file one by one
+            var hasViolations = false
+            for file in changedFiles {
+                var args: [String] = ["lint", "--config", configPath, "--path", file]
+
                 if strict {
-                    throw LintError.lintFailed(exitCode: exitCode)
+                    args.append("--strict")
                 }
-                // Otherwise just note there were violations
-                Herald.warn("Linting found violations (exit code \(exitCode))")
+
+                if quiet {
+                    args.append("--quiet")
+                }
+
+                do {
+                    try ShellRunner.run("swiftlint", arguments: args, workingDirectory: repoRoot)
+                } catch let error as ShellRunnerError {
+                    if case .commandFailed(_, let exitCode) = error {
+                        hasViolations = true
+                        if strict {
+                            throw LintError.lintFailed(exitCode: exitCode)
+                        }
+                    } else {
+                        throw error
+                    }
+                }
+            }
+
+            if hasViolations {
+                Herald.warn("Linting found violations")
             } else {
-                throw error
+                Herald.declare("Linting complete!")
             }
         }
     }
 
     // MARK: - Fix
 
-    private func runFix(targetDir: URL, lintAll: Bool, repoRoot: URL) throws {
-        var args: [String] = ["lint", "--fix"]
-
+    private func runFix(lintAll: Bool, repoRoot: URL) throws {
         if lintAll {
-            Herald.declare("Fixing all files in \(product.directory)...")
-            args.append("--path")
-            args.append(targetDir.path)
+            Herald.declare("Fixing entire codebase...")
+
+            do {
+                try ShellRunner.run("swiftlint", arguments: ["--fix"], workingDirectory: repoRoot)
+                Herald.declare("Fix complete!")
+            } catch let error as ShellRunnerError {
+                if case .commandFailed(_, let exitCode) = error {
+                    Herald.warn("Fix completed with issues (exit code \(exitCode))")
+                } else {
+                    throw error
+                }
+            }
         } else {
-            Herald.declare("Fixing changed files in \(product.directory)...")
-            let changedFiles = try getChangedSwiftFiles(in: targetDir, repoRoot: repoRoot)
+            Herald.declare("Fixing changed files...")
+            let changedFiles = try getChangedSwiftFiles(repoRoot: repoRoot)
 
             if changedFiles.isEmpty {
                 Herald.declare("No changed Swift files found.")
@@ -175,35 +184,57 @@ struct Lint: ParsableCommand {
             }
 
             Herald.declare("Found \(changedFiles.count) changed file(s)")
-            args.append(contentsOf: changedFiles)
-        }
 
-        do {
-            try ShellRunner.run("swiftlint", arguments: args, workingDirectory: repoRoot)
-            Herald.declare("Fix complete!")
-        } catch let error as ShellRunnerError {
-            if case .commandFailed(_, let exitCode) = error {
-                Herald.warn("Fix completed with issues (exit code \(exitCode))")
+            let configPath = repoRoot.appendingPathComponent(".swiftlint.yaml").path
+
+            // Fix each file one by one
+            var hasIssues = false
+            for file in changedFiles {
+                let args: [String] = ["lint", "--fix", "--config", configPath, "--path", file]
+
+                do {
+                    try ShellRunner.run("swiftlint", arguments: args, workingDirectory: repoRoot)
+                } catch let error as ShellRunnerError {
+                    if case .commandFailed = error {
+                        hasIssues = true
+                    } else {
+                        throw error
+                    }
+                }
+            }
+
+            if hasIssues {
+                Herald.warn("Fix completed with issues")
             } else {
-                throw error
+                Herald.declare("Fix complete!")
             }
         }
     }
 
     // MARK: - Changed Files
 
-    private func getChangedSwiftFiles(in targetDir: URL, repoRoot: URL) throws -> [String] {
-        // Get files changed compared to main branch
+    private func getChangedSwiftFiles(repoRoot: URL) throws -> [String] {
+        // Get the merge base between HEAD and main
+        let mergeBase = try ShellRunner.runAndCapture(
+            "git",
+            arguments: ["merge-base", "HEAD", "main"],
+            workingDirectory: repoRoot
+        ).trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Get files changed since merge base (Added, Copied, Modified, Renamed)
         let output = try ShellRunner.runAndCapture(
             "git",
-            arguments: ["diff", "--name-only", "main", "--", targetDir.path],
+            arguments: ["diff", "--name-only", "--diff-filter=ACMR", "\(mergeBase)...HEAD"],
             workingDirectory: repoRoot
         )
 
+        let fileManager = FileManager.default
         let files = output
             .components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty && $0.hasSuffix(".swift") }
+            .map { repoRoot.appendingPathComponent($0).path }
+            .filter { fileManager.fileExists(atPath: $0) }  // Skip files that don't exist
 
         return files
     }
@@ -216,6 +247,57 @@ struct Lint: ParsableCommand {
         } catch {
             throw LintError.swiftlintNotFound
         }
+    }
+
+    // MARK: - Expose Command
+
+    private func printExposedCommands(lintAll: Bool, repoRoot: URL) {
+        if lintAll {
+            print("# Lint entire codebase")
+            if fix {
+                print("swiftlint --fix")
+            } else {
+                print("swiftlint")
+            }
+        } else {
+            let configPath = repoRoot.appendingPathComponent(".swiftlint.yaml").path
+
+            // Show git commands to find changed files
+            print("# Get merge base")
+            print("BASE=$(git merge-base HEAD main)")
+            print("")
+            print("# Find changed Swift files")
+            print(formatCommand("git", arguments: ["diff", "--name-only", "--diff-filter=ACMR", "$BASE...HEAD"]))
+            print("")
+
+            // Show swiftlint command for each file
+            var args: [String] = ["lint", "--config", configPath, "--path", "<file>"]
+
+            if fix {
+                args.insert("--fix", at: 1)
+            }
+
+            if strict {
+                args.append("--strict")
+            }
+
+            if quiet {
+                args.append("--quiet")
+            }
+
+            print("# Lint each changed file")
+            print(formatCommand("swiftlint", arguments: args))
+        }
+    }
+
+    private func formatCommand(_ command: String, arguments: [String]) -> String {
+        let escapedArgs = arguments.map { arg -> String in
+            if arg.contains(" ") || arg.contains("=") {
+                return "'\(arg)'"
+            }
+            return arg
+        }
+        return "\(command) \(escapedArgs.joined(separator: " \\\n    "))"
     }
 }
 

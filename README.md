@@ -8,13 +8,14 @@ Named after Narya, the Ring of Fire, and one of the three Rings of the Elves, fo
 
 The goals of this tool are simple:
 
-1. Provide easily reproducible commands for all developers/CI
-2. Provide a central place for important utilities for managing the firefox-ios repo
-3. Provide a thoroughly documented experience to reduce tribal knowledge
+1. Provide easily reproducible commands for all developers & CI
+2. Provide a central place for important utilities used to manage the firefox-ios repo
+3. Provide a thoroughly documented, understandable experience that will reduce tribal knowledge
 4. Provide a simple, indirect way for new developers to discover tooling used in Swift development
-5. Be dope by being ridiculouly helpful
 
-If a command doesn't materially achieve one of these goals, it likely shouldn't be part of `narya`
+Bonus/most important goal: be dope by being ridiculouly helpful
+
+If a command doesn't materially achieve one of these goals & the bonus goal, it likely shouldn't be part of `narya`
 
 ## Requirements
 
@@ -34,7 +35,7 @@ brew install narya
 
 ## Configuration
 
-narya uses a `.narya.yaml` file in the repository root for configuration.
+narya uses a `.narya.yaml` file in the repository root for configuration and validation that it's in the correct repository
 
 ```yaml
 # Required: identifies this as a narya-compatible repository
@@ -47,22 +48,6 @@ default_bootstrap: firefox
 default_build_product: firefox
 ```
 
-| Field                   | Required | Description                                                                       |
-| ----------------------- | -------- | --------------------------------------------------------------------------------- |
-| `project`               | Yes      | Must be `firefox-ios`                                                             |
-| `default_bootstrap`     | No       | Default product for `narya bootstrap` (`firefox` or `focus`)                      |
-| `default_build_product` | No       | Default product for `narya build` and `narya run` (`firefox`, `focus`, or `klar`) |
-
-## Output Format
-
-All narya output is handled by the `Herald`. The maintain clarity between `narya`'s output and the output of tools/commands it wraps, we have a standard way of presenting output. The beginning of every action block from `narya` is preceeded by a 💍 and intedent afterwards. To maintain this format, always `reset()` the `Herald` before beginning a new action.
-
-| Function  | Meaning                           |
-| --------- | --------------------------------- |
-| reset()   | Begin a new block to output.      |
-| declare() | Used to output a regular block    |
-| warn()    | Used to output errors or warnings |
-
 ## Architecture
 
 ```
@@ -70,7 +55,7 @@ Sources/narya/
 ├── narya.swift               # Entry point (@main)
 ├── Core/                     # Where tools and utilities should be placed
 │   ├── Configuration.swift   # App constants (name, version, etc.)
-│   ├── Herald.swift          # Formatted output handling (💍/▌ prefixes)
+│   ├── Herald.swift          # Formatted output handling
 │   ├── RepoDetector.swift    # Validates firefox-ios repository, loads .narya.yaml
 │   ├── ShellRunner.swift     # Shell command execution
 │   ├── SimulatorManager.swift # iOS Simulator detection and management
@@ -124,6 +109,16 @@ Any new feature or command must include corresponding tests. Tests should cover:
 - Edge cases
 
 See existing test files in `Tests/naryaTests/` for examples.
+
+### Outputting Status from `narya`
+
+All narya output is handled by the `Herald`. The maintain clarity between `narya`'s output and the output of tools/commands it wraps, we have a standard way of presenting output. The beginning of every action block from `narya` is preceeded by a 💍 and intedent afterwards. To maintain this format, always `reset()` the `Herald` before beginning a new action.
+
+| Function  | Meaning                           |
+| --------- | --------------------------------- |
+| reset()   | Begin a new block to output.      |
+| declare() | Used to output a regular block    |
+| warn()    | Used to output errors or warnings |
 
 ## Currently Supported Commands
 
