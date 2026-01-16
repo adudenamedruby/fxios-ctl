@@ -7,64 +7,252 @@ import Foundation
 
 struct Version: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Update the version number across the firefox-ios repository.",
+        abstract: "Display or update the version number in the firefox-ios repository.",
         discussion: """
-            Updates version numbers in Info.plist files, bitrise.yml, and version.txt.
-            Versions are in X.Y format where X is major and Y is minor.
+            Without options, displays the current version from version.txt and git SHA.
+
+            Use --bump to increment major (X.Y -> (X+1).0) or minor (X.Y -> X.(Y+1)) version.
+            Use --set to explicitly set the version.
+            Use --verify to check version consistency across all config files.
             """
     )
 
-    @Flag(name: .long, help: "Increment the major version (X.Y -> (X+1).0).")
-    var major = false
+    // MARK: - Options
 
-    @Flag(name: .long, help: "Increment the minor version (X.Y -> X.(Y+1)).")
-    var minor = false
+    enum BumpType: String, ExpressibleByArgument, CaseIterable {
+        case major
+        case minor
+    }
+
+    @Option(name: .long, help: "Bump version: 'major' (X.Y -> (X+1).0) or 'minor' (X.Y -> X.(Y+1)).")
+    var bump: BumpType?
+
+    @Option(name: .long, help: "Set version explicitly (e.g., '123.4').")
+    var set: String?
+
+    @Flag(name: .long, help: "Verify version consistency across all config files.")
+    var verify = false
+
+    // MARK: - Constants
+
+    private static let versionFileName = "version.txt"
+
+    private static let filesToUpdate = [
+        "firefox-ios/Client/Info.plist",
+        "firefox-ios/CredentialProvider/Info.plist",
+        "firefox-ios/WidgetKit/Info.plist",
+        "bitrise.yml"
+    ]
+
+    private static let extensionsDir = "firefox-ios/Extensions"
 
     mutating func run() throws {
-        // If neither flag is specified, show help
-        guard major || minor else {
-            print(Version.helpMessage())
-            return
-        }
-
-        // Can't specify both
-        guard !(major && minor) else {
-            throw ValidationError("💥💍 Cannot specify both --major and --minor. Choose one.")
-        }
-
-        // Validate we're in a firefox-ios repository and get repo root
+        // Validate we're in a firefox-ios repository
         let repo = try RepoDetector.requireValidRepo()
 
-        // Read current version from version.txt
-        let versionFile = repo.root.appendingPathComponent("version.txt")
-        guard FileManager.default.fileExists(atPath: versionFile.path) else {
-            throw ValidationError("💥💍 version.txt not found at \(versionFile.path)")
+        // Check for conflicting options
+        let optionCount = [bump != nil, set != nil, verify].filter { $0 }.count
+        if optionCount > 1 {
+            throw ValidationError("💥💍 Cannot combine --bump, --set, and --verify. Choose one.")
         }
 
-        let versionString = try String(contentsOf: versionFile, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
-        let (majorVersion, minorVersion) = try parseVersion(versionString)
+        if let bumpType = bump {
+            try runBump(type: bumpType, repoRoot: repo.root)
+        } else if let newVersion = set {
+            try runSet(version: newVersion, repoRoot: repo.root)
+        } else if verify {
+            try runVerify(repoRoot: repo.root)
+        } else {
+            try printVersion(repoRoot: repo.root)
+        }
+    }
 
-        // Calculate new version
+    // MARK: - Print Version
+
+    private func printVersion(repoRoot: URL) throws {
+        let version = try readVersion(repoRoot: repoRoot)
+        let gitSha = getGitSha(repoRoot: repoRoot)
+
+        if let sha = gitSha {
+            print("💍 \(version) (\(sha))")
+        } else {
+            print("💍 \(version)")
+        }
+    }
+
+    private func getGitSha(repoRoot: URL) -> String? {
+        do {
+            let output = try ShellRunner.runAndCapture(
+                "git",
+                arguments: ["rev-parse", "--short", "HEAD"],
+                workingDirectory: repoRoot
+            )
+            let sha = output.trimmingCharacters(in: .whitespacesAndNewlines)
+            return sha.isEmpty ? nil : sha
+        } catch {
+            return nil
+        }
+    }
+
+    // MARK: - Bump Version
+
+    private func runBump(type: BumpType, repoRoot: URL) throws {
+        let currentVersion = try readVersion(repoRoot: repoRoot)
+        let (majorVersion, minorVersion) = try parseVersion(currentVersion)
+
         let newMajor: Int
         let newMinor: Int
 
-        if major {
+        switch type {
+        case .major:
             newMajor = majorVersion + 1
             newMinor = 0
-        } else {
+        case .minor:
             newMajor = majorVersion
             newMinor = minorVersion + 1
         }
 
-        let currentVersion = "\(majorVersion).\(minorVersion)"
         let newVersion = "\(newMajor).\(newMinor)"
 
-        print("💍 Updating version: \(currentVersion) -> \(newVersion)")
-
-        // Update all the files
-        try updateVersionInFiles(from: currentVersion, to: newVersion, repoRoot: repo.root)
-
+        print("💍 Bumping version: \(currentVersion) -> \(newVersion)")
+        try updateVersionInFiles(from: currentVersion, to: newVersion, repoRoot: repoRoot)
         print("💍 Version updated to \(newVersion)")
+    }
+
+    // MARK: - Set Version
+
+    private func runSet(version newVersion: String, repoRoot: URL) throws {
+        // Validate the new version format
+        _ = try parseVersion(newVersion)
+
+        let currentVersion = try readVersion(repoRoot: repoRoot)
+
+        if currentVersion == newVersion {
+            print("💍 Version is already \(newVersion)")
+            return
+        }
+
+        print("💍 Setting version: \(currentVersion) -> \(newVersion)")
+        try updateVersionInFiles(from: currentVersion, to: newVersion, repoRoot: repoRoot)
+        print("💍 Version updated to \(newVersion)")
+    }
+
+    // MARK: - Verify Version
+
+    private func runVerify(repoRoot: URL) throws {
+        let expectedVersion = try readVersion(repoRoot: repoRoot)
+        print("💍 Verifying version consistency (expected: \(expectedVersion))...")
+
+        var mismatches: [(file: String, found: String?)] = []
+
+        // Check standard files
+        for relativePath in Self.filesToUpdate {
+            let filePath = repoRoot.appendingPathComponent(relativePath)
+            if let mismatch = checkVersionInFile(at: filePath, expected: expectedVersion) {
+                mismatches.append((relativePath, mismatch))
+            }
+        }
+
+        // Check extension Info.plist files
+        let extensionsPath = repoRoot.appendingPathComponent(Self.extensionsDir)
+        if FileManager.default.fileExists(atPath: extensionsPath.path) {
+            let extensionMismatches = try checkExtensionInfoPlists(
+                in: extensionsPath,
+                expected: expectedVersion,
+                repoRoot: repoRoot
+            )
+            mismatches.append(contentsOf: extensionMismatches)
+        }
+
+        if mismatches.isEmpty {
+            print("💍 All files have consistent version \(expectedVersion)")
+        } else {
+            print("💥💍 Version mismatches found:")
+            for mismatch in mismatches {
+                if let found = mismatch.found {
+                    print("  - \(mismatch.file): found '\(found)'")
+                } else {
+                    print("  - \(mismatch.file): version not found")
+                }
+            }
+            throw ExitCode.failure
+        }
+    }
+
+    private func checkVersionInFile(at url: URL, expected: String) -> String? {
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            return nil // File doesn't exist, skip
+        }
+
+        guard let content = try? String(contentsOf: url, encoding: .utf8) else {
+            return "unable to read"
+        }
+
+        // For plist files, look for CFBundleShortVersionString pattern
+        if url.pathExtension == "plist" {
+            // Simple check: does the file contain the expected version?
+            if content.contains(expected) {
+                return nil // OK
+            }
+            // Try to extract the actual version
+            if let range = content.range(of: "<key>CFBundleShortVersionString</key>") {
+                let afterKey = content[range.upperBound...]
+                if let stringStart = afterKey.range(of: "<string>"),
+                   let stringEnd = afterKey.range(of: "</string>") {
+                    let versionRange = stringStart.upperBound..<stringEnd.lowerBound
+                    return String(afterKey[versionRange])
+                }
+            }
+            return "version not found in plist"
+        }
+
+        // For other files (like bitrise.yml), just check if version is present
+        if content.contains(expected) {
+            return nil // OK
+        }
+
+        return "expected version not found"
+    }
+
+    private func checkExtensionInfoPlists(
+        in extensionsDir: URL,
+        expected: String,
+        repoRoot: URL
+    ) throws -> [(file: String, found: String?)] {
+        var mismatches: [(String, String?)] = []
+        let fileManager = FileManager.default
+
+        let extensionDirs = try fileManager.contentsOfDirectory(
+            at: extensionsDir,
+            includingPropertiesForKeys: [.isDirectoryKey]
+        )
+
+        for extDir in extensionDirs {
+            let resourceValues = try extDir.resourceValues(forKeys: [.isDirectoryKey])
+            guard resourceValues.isDirectory == true else { continue }
+
+            let extContents = try fileManager.contentsOfDirectory(at: extDir, includingPropertiesForKeys: nil)
+            for file in extContents where file.lastPathComponent.hasSuffix("Info.plist") {
+                if let mismatch = checkVersionInFile(at: file, expected: expected) {
+                    let relativePath = file.path.replacingOccurrences(of: repoRoot.path + "/", with: "")
+                    mismatches.append((relativePath, mismatch))
+                }
+            }
+        }
+
+        return mismatches
+    }
+
+    // MARK: - Version File Operations
+
+    private func readVersion(repoRoot: URL) throws -> String {
+        let versionFile = repoRoot.appendingPathComponent(Self.versionFileName)
+        guard FileManager.default.fileExists(atPath: versionFile.path) else {
+            throw ValidationError("💥💍 version.txt not found at \(versionFile.path)")
+        }
+
+        return try String(contentsOf: versionFile, encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func parseVersion(_ version: String) throws -> (major: Int, minor: Int) {
@@ -78,27 +266,20 @@ struct Version: ParsableCommand {
     }
 
     private func updateVersionInFiles(from currentVersion: String, to newVersion: String, repoRoot: URL) throws {
-        let filesToUpdate = [
-            "firefox-ios/Client/Info.plist",
-            "firefox-ios/CredentialProvider/Info.plist",
-            "firefox-ios/WidgetKit/Info.plist",
-            "bitrise.yml"
-        ]
-
         // Update specific files
-        for relativePath in filesToUpdate {
+        for relativePath in Self.filesToUpdate {
             let filePath = repoRoot.appendingPathComponent(relativePath)
             try updateVersionInFile(at: filePath, from: currentVersion, to: newVersion)
         }
 
-        // Update extension Info.plist files (firefox-ios/Extensions/*/*Info.plist)
-        let extensionsDir = repoRoot.appendingPathComponent("firefox-ios/Extensions")
-        if FileManager.default.fileExists(atPath: extensionsDir.path) {
-            try updateExtensionInfoPlists(in: extensionsDir, from: currentVersion, to: newVersion)
+        // Update extension Info.plist files
+        let extensionsPath = repoRoot.appendingPathComponent(Self.extensionsDir)
+        if FileManager.default.fileExists(atPath: extensionsPath.path) {
+            try updateExtensionInfoPlists(in: extensionsPath, from: currentVersion, to: newVersion)
         }
 
         // Write new version to version.txt
-        let versionFile = repoRoot.appendingPathComponent("version.txt")
+        let versionFile = repoRoot.appendingPathComponent(Self.versionFileName)
         try (newVersion + "\n").write(to: versionFile, atomically: true, encoding: .utf8)
     }
 
@@ -121,7 +302,6 @@ struct Version: ParsableCommand {
             let resourceValues = try extDir.resourceValues(forKeys: [.isDirectoryKey])
             guard resourceValues.isDirectory == true else { continue }
 
-            // Look for *Info.plist files in each extension directory
             let extContents = try fileManager.contentsOfDirectory(at: extDir, includingPropertiesForKeys: nil)
             for file in extContents where file.lastPathComponent.hasSuffix("Info.plist") {
                 try updateVersionInFile(at: file, from: currentVersion, to: newVersion)

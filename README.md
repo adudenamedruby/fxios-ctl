@@ -29,7 +29,7 @@ NOTE: Installation instructions to follow once the tap exists
 | `narya clean`          | Clean up cached or generated files                        |
 | `narya nimbus`         | Manage Nimbus feature configuration files                 |
 | `narya telemetry`      | Update telemetry configuration files                      |
-| `narya update version` | Update version numbers across the repository              |
+| `narya version`        | Display or update version numbers across the repository   |
 
 ### build
 
@@ -130,13 +130,16 @@ narya telemetry --add newFeature              # Add new metrics YAML
 narya telemetry --add newFeature --description "Description"
 ```
 
-### update version
+### version
 
-Updates version numbers across the repository.
+Displays or updates version numbers across the repository. Without options, shows the current version and git SHA.
 
 ```bash
-narya update version --major   # 145.6 -> 146.0
-narya update version --minor   # 145.6 -> 145.7
+narya version                     # Show current version and git SHA
+narya version --bump major        # 145.6 -> 146.0
+narya version --bump minor        # 145.6 -> 145.7
+narya version --set 123.4         # Explicitly set version
+narya version --verify            # Check version consistency across files
 ```
 
 ## Configuration
@@ -189,8 +192,7 @@ Sources/narya/
     ├── Setup.swift           # Clone + bootstrap command
     ├── Telemetry.swift       # Update Glean telemetry config files
     ├── Test.swift            # Run tests with xcodebuild
-    ├── Update.swift          # Parent command for update subcommands
-    └── Version.swift         # Update version numbers
+    └── Version.swift         # Display or update version numbers
 ```
 
 ## Development & Contribution
