@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    strategy:
+      matrix:
+        include:
+          - runner: macos-14
+            arch: arm64
+          - runner: macos-13
+            arch: x86_64
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build (release)
+        run: |
+          swift --version
+          swift build -c release --arch ${{ matrix.arch }}
+
+      - name: Package
+        run: |
+          BIN_NAME="narya"
+          OUT_DIR="dist"
+          mkdir -p "$OUT_DIR"
+
+          # SwiftPM output path (most common)
+          cp ".build/release/$BIN_NAME" "$OUT_DIR/$BIN_NAME"
+
+          chmod +x "$OUT_DIR/$BIN_NAME"
+
+          VERSION="${GITHUB_REF_NAME}" # e.g. v0.1.0
+          TARBALL="narya-${VERSION}-macos-${{ matrix.arch }}.tar.gz"
+          tar -C "$OUT_DIR" -czf "$TARBALL" "$BIN_NAME"
+
+          shasum -a 256 "$TARBALL" | tee "${TARBALL}.sha256"
+
+      - name: Upload assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            narya-*.tar.gz
+            narya-*.tar.gz.sha256
