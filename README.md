@@ -59,7 +59,9 @@ default_build_product: firefox
 Sources/narya/
 ├── narya.swift               # Entry point (@main)
 ├── Core/                     # Where tools and utilities should be placed
+│   ├── CommandHelpers.swift  # Shared utilities for command implementations
 │   ├── Configuration.swift   # App constants (name, version, etc.)
+│   ├── DeviceShorthand.swift # Simulator shorthand pattern matching (e.g., 17pro, air13)
 │   ├── Herald.swift          # Formatted output handling
 │   ├── RepoDetector.swift    # Validates firefox-ios repository, loads .narya.yaml
 │   ├── ShellRunner.swift     # Shell command execution
@@ -146,13 +148,19 @@ Builds Firefox, Focus, or Klar for development using xcodebuild. By default, bui
 
 The simulator is auto-detected to use the latest iOS version with a standard iPhone model (non-Pro, non-Max).
 
+**Simulator shorthand patterns:**
+- iPhone: `17`, `17pro`, `17max`, `17plus`, `16e`, `air`, `se`
+- iPad: `air11`, `air13`, `pro11`, `pro13`, `mini`
+
 ```bash
 narya build                         # Build Firefox for simulator
 narya build -p focus                # Build Focus for simulator
 narya build -p klar                 # Build Klar for simulator
 narya build --for-testing           # Build for testing (generates xctestrun)
-narya build --device                # Build for connected device
-narya build --simulator "iPhone 16 Pro"  # Use specific simulator
+narya build -d                      # Build for connected device
+narya build --sim 17pro             # Use iPhone 17 Pro simulator
+narya build --sim air13             # Use iPad Air 13-inch simulator
+narya build --os 18.0               # Use specific iOS version
 narya build --configuration Fennec_Testing
 narya build --clean                 # Clean before building
 narya build --skip-resolve          # Skip SPM package resolution
@@ -168,9 +176,12 @@ Builds and launches Firefox, Focus, or Klar in the iOS Simulator. This is equiva
 ```bash
 narya run                           # Build and run Firefox
 narya run -p focus                  # Build and run Focus
-narya run --simulator "iPhone 16 Pro"
+narya run --sim 17pro               # Use iPhone 17 Pro simulator
+narya run --os 18.0                 # Use specific iOS version
 narya run --clean                   # Clean before building
+narya run --skip-resolve            # Skip SPM package resolution
 narya run -q                        # Quiet mode
+narya run --list-simulators         # Show available simulators
 narya run --expose                  # Print commands without running
 ```
 
@@ -193,7 +204,9 @@ narya test --plan smoke             # Run smoke tests
 narya test --build-first            # Build for testing, then run tests
 narya test --filter "TabTests"      # Run tests matching filter
 narya test --retries 2              # Retry failed tests up to 2 times
-narya test --simulator "iPhone 16 Pro"
+narya test --sim 17pro              # Use iPhone 17 Pro simulator
+narya test --os 18.0                # Use specific iOS version
+narya test --list-simulators        # Show available simulators
 narya test -q                       # Quiet mode
 narya test --expose                 # Print xcodebuild command without running
 ```
@@ -219,6 +232,7 @@ narya clean -p              # Reset and resolve Swift packages
 narya clean -b              # Delete .build directory
 narya clean -d              # Delete DerivedData
 narya clean --all           # Clean everything
+narya clean --expose        # Print commands without running
 ```
 
 ### nimbus
@@ -257,14 +271,14 @@ narya version --verify            # Check version consistency across files
 Runs SwiftLint on the codebase. By default, lints only files changed compared to the main branch.
 
 ```bash
-narya lint                        # Lint changed files in firefox-ios
-narya lint -p focus               # Lint changed files in focus-ios
+narya lint                        # Lint changed files (default)
 narya lint --all                  # Lint entire project
 narya lint --changed              # Lint only changed files (default)
 narya lint --strict               # Treat warnings as errors
 narya lint -q                     # Quiet mode (show only counts)
 narya lint --fix                  # Auto-correct fixable violations
 narya lint --fix --changed        # Fix only changed files
+narya lint --expose               # Print swiftlint command without running
 narya lint info                   # Show SwiftLint version and rules
 ```
 
