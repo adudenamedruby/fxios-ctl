@@ -86,6 +86,25 @@ struct TestCommandTests {
         #expect(TestPlan.allCases.count == 5)
     }
 
+    @Test("TestPlan a11y shorthand parses to accessibility")
+    func planA11yShorthand() {
+        let plan = TestPlan(argument: "a11y")
+        #expect(plan == .accessibility)
+    }
+
+    @Test("TestPlan perf shorthand parses to performance")
+    func planPerfShorthand() {
+        let plan = TestPlan(argument: "perf")
+        #expect(plan == .performance)
+    }
+
+    @Test("TestPlan shorthands are case-insensitive")
+    func planShorthandsCaseInsensitive() {
+        #expect(TestPlan(argument: "A11Y") == .accessibility)
+        #expect(TestPlan(argument: "PERF") == .performance)
+        #expect(TestPlan(argument: "Unit") == .unit)
+    }
+
     // MARK: - TestPlan xctestrun Prefix Tests
 
     @Test("Unit test plan prefix for Firefox")
@@ -180,6 +199,18 @@ struct TestCommandTests {
     func parsePlan() throws {
         let command = try Test.parse(["--plan", "smoke"])
         #expect(command.plan == .smoke)
+    }
+
+    @Test("Can parse plan option with a11y shorthand")
+    func parsePlanA11y() throws {
+        let command = try Test.parse(["--plan", "a11y"])
+        #expect(command.plan == .accessibility)
+    }
+
+    @Test("Can parse plan option with perf shorthand")
+    func parsePlanPerf() throws {
+        let command = try Test.parse(["--plan", "perf"])
+        #expect(command.plan == .performance)
     }
 
     @Test("Can parse filter option")

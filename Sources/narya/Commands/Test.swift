@@ -14,6 +14,23 @@ enum TestPlan: String, ExpressibleByArgument, CaseIterable {
     case performance
     case full  // Focus/Klar only (FullFunctionalTests)
 
+    init?(argument: String) {
+        switch argument.lowercased() {
+        case "unit":
+            self = .unit
+        case "smoke":
+            self = .smoke
+        case "accessibility", "a11y":
+            self = .accessibility
+        case "performance", "perf":
+            self = .performance
+        case "full":
+            self = .full
+        default:
+            return nil
+        }
+    }
+
     /// Returns the xctestrun file name prefix for a given product
     func xctestrunPrefix(for product: BuildProduct) -> String? {
         switch (self, product) {
@@ -125,8 +142,8 @@ struct Test: ParsableCommand {
             TEST PLAN OPTIONS:
               - unit: Unit tests (default)
               - smoke: Smoke/UI tests
-              - accessibility: Accessibility tests (Firefox only)
-              - performance: Performance tests (Firefox only)
+              - accessibility (a11y): Accessibility tests (Firefox only)
+              - performance (perf): Performance tests (Firefox only)
               - full: Full functional tests (Focus/Klar only)
 
             SIMULATOR SELECTION:
@@ -151,7 +168,7 @@ struct Test: ParsableCommand {
 
     // MARK: - Test Plan
 
-    @Option(name: .long, help: "Test plan to run: unit, smoke, accessibility, performance, or full.")
+    @Option(name: .long, help: "Test plan to run: unit, smoke, a11y (accessibility), perf (performance), or full.")
     var plan: TestPlan = .unit
 
     // MARK: - Test Filtering
