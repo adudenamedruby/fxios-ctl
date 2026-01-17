@@ -126,6 +126,7 @@ All narya output is handled by the `Herald`. The maintain clarity between `narya
 | `narya bootstrap` | Bootstrap the repository for Firefox or Focus development |
 | `narya build`     | Build Firefox, Focus, or Klar for development             |
 | `narya clean`     | Clean up cached or generated files                        |
+| `narya doctor`    | Check development environment for required tools          |
 | `narya lint`      | Run SwiftLint on the codebase                             |
 | `narya nimbus`    | Manage Nimbus feature configuration files                 |
 | `narya run`       | Build and launch in the iOS Simulator                     |
@@ -149,6 +150,16 @@ Please read [Simulator Shorthand](#simulator-shorthand) for an explanation of th
 #### `clean`
 
 Cleans up various cached or generated files.
+
+#### `doctor`
+
+Checks your development environment for required tools and configuration. This is useful for onboarding new developers or troubleshooting build issues.
+
+Checks performed:
+
+- **Required tools**: git, node, npm, swift, xcodebuild, xcode-select, simctl
+- **Optional tools**: swiftlint (reports status but won't flag as issue if missing)
+- **Repository context** (when run from firefox-ios): validates `.narya.yaml`, checks git hooks installation, shows configured defaults
 
 #### `lint`
 
