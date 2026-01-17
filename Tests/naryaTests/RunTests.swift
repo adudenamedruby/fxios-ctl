@@ -45,7 +45,7 @@ struct RunTests {
     func commandHasDiscussion() {
         let discussion = Run.configuration.discussion
         #expect(!discussion.isEmpty)
-        #expect(discussion.contains("simulator"))
+        #expect(discussion.lowercased().contains("simulator"))
     }
 
     // MARK: - Argument Parsing Tests

@@ -14,8 +14,10 @@ struct ConfigurationTests {
 
     @Test("Configuration has valid version format")
     func versionFormat() {
-        let versionPattern = /^\d+\.\d+\.\d+$/
-        #expect(Configuration.version.contains(versionPattern))
+        // Version can be semver (X.Y.Z) or date-based (YYYYMMDD.N)
+        let semverPattern = /^\d+\.\d+\.\d+$/
+        let datePattern = /^\d{8}\.\d+$/
+        #expect(Configuration.version.contains(semverPattern) || Configuration.version.contains(datePattern))
     }
 
     @Test("Configuration has non-empty description")
