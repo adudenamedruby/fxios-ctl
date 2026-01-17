@@ -35,8 +35,8 @@ brew install narya
 
 **NOTE:** installing `narya` will also install several dependencies through `brew`, that are used for functionality:
 
-- (swiftlint)[https://github.com/realm/SwiftLint]
-- (danger)[https://github.com/danger/swift]
+- [swiftlint](https://github.com/realm/SwiftLint)
+- [danger](https://github.com/danger/swift)
 
 ## Configuration
 
@@ -84,7 +84,7 @@ Sources/narya/
 
 Contributing to `narya` is easy: please fork the repo, make your changes, and submit a PR.
 
-For a discussion of the design thoughts behind `narya`, and what to add, please first read the (GUIDELINES)[https://github.com/adudenamedruby/narya/blob/main/GUIDELINES.md] document.
+For a discussion of the design thoughts behind `narya`, and what to add, please first read the [GUIDELINES](https://github.com/adudenamedruby/narya/blob/main/GUIDELINES.md) document.
 
 ### Dev Notes
 
