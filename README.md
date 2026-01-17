@@ -192,7 +192,7 @@ Displays or updates version numbers across the repository. Without options, show
 
 ### Simulator Shorthands
 
-The `--sim` option in `build`, `run`, and `test` subcommands accepts either a shorthand code or the full simulator name (e.g., `--sim 17pro` or `--sim "iPhone 17 Pro"`). Use the `list-sims` subcommand to see available simulators on your current machine and their respective shorthands. The shorthands generally follow a simple pattern for devices, as outlined below:
+The `--sim` option in `build`, `run`, and `test` subcommands accepts either a shorthand code or the full simulator name (e.g., `--sim 17pro` or `--sim "iPhone 17 Pro"`). Use the `list-sims` subcommand to see available simulators on your current machine and their respective shorthands.
 
 #### Design Principles for Shorthand Patterns
 
@@ -200,8 +200,7 @@ The `--sim` option in `build`, `run`, and `test` subcommands accepts either a sh
 2. No shorthand is OK - Devices that don't fit the pattern get "-" and require the full name
 3. Bidirectional consistency - parseShorthand() and shorthand(for:) use the same rules
 
-In general, these are the shorthand rules:
-Shorthand Rules
+In general, these design principles result in the following shorthands on my machine:
 
 iPhone:
 | Pattern | Examples | Matches |
@@ -209,7 +208,7 @@ iPhone:
 | <N> | 17 | iPhone 17 (base model only) |
 | <N>pro | 17pro | iPhone 17 Pro |
 | <N>max | 17max | iPhone 17 Pro Max |
-| <N>plus | 17plus | iPhone 17 Plus |
+| <N>plus | 16plus | iPhone 16 Plus |
 | <N>e | 16e | iPhone 16e |
 | se | se | iPhone SE (any generation) |
 | air | air | iPhone Air |
@@ -219,16 +218,16 @@ iPad:
 | --------- | ------------------ | ---- |
 | air<size> | air11, air13 | iPad Air 11/13-inch (13 also matches 12.9) |
 | pro<size> | pro11, pro13, pro129 | iPad Pro (13 matches 12.9 too; 129 is precise) |
-| mini | mini | iPad mini (any) |
+| mini | mini | iPad mini (any - but latest) |
 | mini<N>g | mini6g, mini7g | iPad mini (Nth generation) |
 | miniA<chip> | miniA17 | iPad mini (A17 Pro) |
 | pad<N>g | pad10g | iPad (Nth generation) |
 | padA<chip> | padA16 | iPad (A16) |
 Matching behavior:
 
-- pro13 matches both "13-inch" and "12.9-inch", but prefers exact match if both exist
+- pro13 matches both "13-inch" and "12.9-inch", but prefers exact match if both simulators exist
 - pro129 matches only "12.9-inch" (precise)
-- Devices that don't fit patterns get "-" → user must use full name
+- Devices that don't fit patterns get "-" and the user must pass in the full name
 
 ## License
 
