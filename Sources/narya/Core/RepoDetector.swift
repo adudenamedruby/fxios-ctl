@@ -5,6 +5,9 @@
 import Foundation
 import Yams
 
+// MARK: - Configuration
+
+/// Configuration loaded from .narya.yaml at the repository root.
 struct NaryaConfig: Codable {
     let project: String
     let defaultBootstrap: String?
@@ -17,10 +20,13 @@ struct NaryaConfig: Codable {
     }
 }
 
+/// Result of successful repository validation.
 struct RepoInfo {
     let config: NaryaConfig
     let root: URL
 }
+
+// MARK: - Errors
 
 enum RepoDetectorError: Error, CustomStringConvertible {
     case notInGitRepo
@@ -52,6 +58,14 @@ enum RepoDetectorError: Error, CustomStringConvertible {
     }
 }
 
+// MARK: - RepoDetector
+
+/// Validates that commands are run from within a valid firefox-ios repository.
+///
+/// Validation checks:
+/// 1. Current directory is inside a git repository
+/// 2. Repository root contains .narya.yaml marker file
+/// 3. Marker file specifies the expected project ("firefox-ios")
 enum RepoDetector {
     static let expectedProject = "firefox-ios"
 

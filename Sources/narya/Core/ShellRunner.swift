@@ -4,6 +4,8 @@
 
 import Foundation
 
+// MARK: - Errors
+
 enum ShellRunnerError: Error, CustomStringConvertible {
     case commandFailed(command: String, exitCode: Int32)
     case executionFailed(command: String, reason: String)
@@ -18,9 +20,15 @@ enum ShellRunnerError: Error, CustomStringConvertible {
     }
 }
 
+// MARK: - ShellRunner
+
+/// Executes shell commands via `/usr/bin/env`.
+///
+/// Two variants are provided:
+/// - `run`: Streams output directly to the terminal
+/// - `runAndCapture`: Captures stdout and returns it as a String
 enum ShellRunner {
-    /// Run a command and wait for it to complete.
-    /// Output is passed through to stdout/stderr.
+    /// Runs a command, streaming output to the terminal.
     @discardableResult
     static func run(
         _ command: String,
@@ -56,7 +64,7 @@ enum ShellRunner {
         return process.terminationStatus
     }
 
-    /// Run a command and capture its stdout output.
+    /// Runs a command and captures stdout, suppressing stderr.
     static func runAndCapture(
         _ command: String,
         arguments: [String] = [],

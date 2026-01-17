@@ -2,6 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+// Narya - CLI tool for firefox-ios development
+//
+// Commands validate they're run within a valid firefox-ios repo via RepoDetector,
+// which looks for .narya.yaml at the repository root.
+
 import ArgumentParser
 import Foundation
 

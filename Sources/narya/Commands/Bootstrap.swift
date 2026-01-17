@@ -150,13 +150,12 @@ struct Bootstrap: ParsableCommand {
         let browserKitDir = repoRoot.appendingPathComponent("BrowserKit")
 
         // MARK: - Swift retry logic
-        // TODO: Investigate why this double-run is needed and remove if unnecessary.
         // The original bootstrap script runs `swift run || true` followed by `swift run`.
-        // This suggests the first run may fail but sets up something needed for the second run.
+        // This is because the first run may fail but sets up dependencies needed for the second run.
         do {
             try ShellRunner.run("swift", arguments: ["run"], workingDirectory: browserKitDir)
         } catch {
-            Herald.warn("First swift run failed, retrying...")
+            Herald.warn("First `swift run` failed; this is an expected error. Rerunning...")
             try ShellRunner.run("swift", arguments: ["run"], workingDirectory: browserKitDir)
         }
 

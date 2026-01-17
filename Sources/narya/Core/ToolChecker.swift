@@ -4,6 +4,8 @@
 
 import Foundation
 
+// MARK: - Errors
+
 enum ToolCheckerError: Error, CustomStringConvertible {
     case toolNotFound(String)
 
@@ -15,6 +17,10 @@ enum ToolCheckerError: Error, CustomStringConvertible {
     }
 }
 
+// MARK: - ToolChecker
+
+/// Validates that required external tools are installed before commands run.
+/// Each `require*` method throws if the tool is not available in PATH.
 enum ToolChecker {
     static func requireGit() throws {
         try checkTool("git", arguments: ["--version"])
