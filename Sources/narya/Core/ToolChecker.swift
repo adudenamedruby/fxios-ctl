@@ -56,8 +56,6 @@ enum ToolChecker {
             if process.terminationStatus != 0 {
                 throw ToolCheckerError.toolNotFound(tool)
             }
-        } catch is ToolCheckerError {
-            throw ToolCheckerError.toolNotFound(tool)
         } catch {
             throw ToolCheckerError.toolNotFound(tool)
         }

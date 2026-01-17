@@ -102,6 +102,16 @@ private struct ParsedShorthand {
 // MARK: - Device Shorthand
 
 enum DeviceShorthand {
+    // MARK: - Cached Regex Patterns
+
+    /// Pre-compiled regex patterns to avoid repeated compilation
+    private static let phoneNumberPattern = try! NSRegularExpression(pattern: #"^(\d+)(e|pro|max|plus)?$"#, options: .caseInsensitive)
+    private static let miniGenPattern = try! NSRegularExpression(pattern: #"^mini(\d+)g$"#, options: .caseInsensitive)
+    private static let miniChipPattern = try! NSRegularExpression(pattern: #"^minia(\d+)$"#, options: .caseInsensitive)
+    private static let padGenerationPattern = try! NSRegularExpression(pattern: #"^pad(\d+)g$"#, options: .caseInsensitive)
+    private static let padChipPattern = try! NSRegularExpression(pattern: #"^pada(\d+)$"#, options: .caseInsensitive)
+    private static let ipadSizePattern = try! NSRegularExpression(pattern: #"^(air|pro)(\d+)$"#, options: .caseInsensitive)
+
     // MARK: - Public API
 
     /// Finds a simulator matching the shorthand (auto-detects iPhone vs iPad)
@@ -219,10 +229,8 @@ enum DeviceShorthand {
             return "^iPhone SE"
         }
 
-        // Pattern: <number>[e|pro|max|plus]
-        let pattern = #"^(\d+)(e|pro|max|plus)?$"#
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
-              let match = regex.firstMatch(in: shorthand, range: NSRange(shorthand.startIndex..., in: shorthand)) else {
+        // Use cached pattern: <number>[e|pro|max|plus]
+        guard let match = phoneNumberPattern.firstMatch(in: shorthand, range: NSRange(shorthand.startIndex..., in: shorthand)) else {
             return nil
         }
 
@@ -282,9 +290,7 @@ enum DeviceShorthand {
         }
 
         // mini<N>g → iPad mini (Nth generation)
-        let miniGenPattern = #"^mini(\d+)g$"#
-        if let genRegex = try? NSRegularExpression(pattern: miniGenPattern, options: .caseInsensitive),
-           let genMatch = genRegex.firstMatch(in: shorthand, range: NSRange(shorthand.startIndex..., in: shorthand)),
+        if let genMatch = miniGenPattern.firstMatch(in: shorthand, range: NSRange(shorthand.startIndex..., in: shorthand)),
            let genRange = Range(genMatch.range(at: 1), in: shorthand) {
             let generation = String(shorthand[genRange])
             let ordinal = ordinalPattern(for: generation)
@@ -292,9 +298,7 @@ enum DeviceShorthand {
         }
 
         // miniA<chip> → iPad mini (A<chip> Pro) or iPad mini (A<chip>)
-        let miniChipPattern = #"^minia(\d+)$"#
-        if let chipRegex = try? NSRegularExpression(pattern: miniChipPattern, options: .caseInsensitive),
-           let chipMatch = chipRegex.firstMatch(in: shorthand, range: NSRange(shorthand.startIndex..., in: shorthand)),
+        if let chipMatch = miniChipPattern.firstMatch(in: shorthand, range: NSRange(shorthand.startIndex..., in: shorthand)),
            let chipRange = Range(chipMatch.range(at: 1), in: shorthand) {
             let chip = String(shorthand[chipRange])
             // Match both "iPad mini (A17 Pro)" and "iPad mini (A17)"
@@ -302,9 +306,7 @@ enum DeviceShorthand {
         }
 
         // pad<N>g → iPad (Nth generation)
-        let generationPattern = #"^pad(\d+)g$"#
-        if let genRegex = try? NSRegularExpression(pattern: generationPattern, options: .caseInsensitive),
-           let genMatch = genRegex.firstMatch(in: shorthand, range: NSRange(shorthand.startIndex..., in: shorthand)),
+        if let genMatch = padGenerationPattern.firstMatch(in: shorthand, range: NSRange(shorthand.startIndex..., in: shorthand)),
            let genRange = Range(genMatch.range(at: 1), in: shorthand) {
             let generation = String(shorthand[genRange])
             let ordinal = ordinalPattern(for: generation)
@@ -312,18 +314,14 @@ enum DeviceShorthand {
         }
 
         // padA<chip> → iPad (A<chip>)
-        let chipPattern = #"^pada(\d+)$"#
-        if let chipRegex = try? NSRegularExpression(pattern: chipPattern, options: .caseInsensitive),
-           let chipMatch = chipRegex.firstMatch(in: shorthand, range: NSRange(shorthand.startIndex..., in: shorthand)),
+        if let chipMatch = padChipPattern.firstMatch(in: shorthand, range: NSRange(shorthand.startIndex..., in: shorthand)),
            let chipRange = Range(chipMatch.range(at: 1), in: shorthand) {
             let chip = String(shorthand[chipRange])
             return ("^iPad \\(A\(chip)\\)$", nil)
         }
 
         // Pattern: <type><size> where type is air|pro and size is a number
-        let pattern = #"^(air|pro)(\d+)$"#
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
-              let match = regex.firstMatch(in: shorthand, range: NSRange(shorthand.startIndex..., in: shorthand)) else {
+        guard let match = ipadSizePattern.firstMatch(in: shorthand, range: NSRange(shorthand.startIndex..., in: shorthand)) else {
             return nil
         }
 

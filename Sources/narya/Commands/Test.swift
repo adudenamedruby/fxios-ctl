@@ -153,20 +153,6 @@ struct Test: ParsableCommand {
         defaultSubcommand: nil
     )
 
-    // MARK: - List Sims Subcommand
-
-    struct ListSims: ParsableCommand {
-        static let configuration = CommandConfiguration(
-            commandName: "list-sims",
-            abstract: "List available simulators and their shorthand codes."
-        )
-
-        func run() throws {
-            Herald.reset()
-            try CommandHelpers.printSimulatorList()
-        }
-    }
-
     // MARK: - Product Selection
 
     @Option(name: [.short, .long], help: "Product to test: firefox, focus, or klar.")
@@ -252,14 +238,14 @@ struct Test: ParsableCommand {
 
         // Print test info
         if !quiet {
-            Herald.declare(" Test Configuration:")
-            print("   Product: \(testProduct.scheme)")
-            print("   Test Plan: \(plan.displayName)")
-            print("   Simulator: \(simulatorSelection.simulator.name) (iOS \(simulatorSelection.runtime.version))")
+            Herald.declare("Test Configuration:")
+            Herald.declare("  Product: \(testProduct.scheme)")
+            Herald.declare("  Test Plan: \(plan.displayName)")
+            Herald.declare("  Simulator: \(simulatorSelection.simulator.name) (iOS \(simulatorSelection.runtime.version))")
             if let filter = filter {
-                print("   Filter: \(filter)")
+                Herald.declare("  Filter: \(filter)")
             }
-            print("")
+            Herald.declare("")
         }
 
         // Build for testing if requested
@@ -279,7 +265,7 @@ struct Test: ParsableCommand {
             repoRoot: repo.root
         )
 
-        Herald.declare(" Tests passed!")
+        Herald.declare("Tests passed!")
     }
 
     // MARK: - Private Methods
@@ -290,33 +276,25 @@ struct Test: ParsableCommand {
         simulator: SimulatorSelection
     ) throws {
         if !quiet {
-            Herald.declare(" Building \(product.scheme) for testing...")
+            Herald.declare("Building \(product.scheme) for testing...")
         }
 
-        var args = [
-            "-project", projectPath.path,
-            "-scheme", product.scheme,
-            "-configuration", product.testingConfiguration,
-            "-destination", "platform=iOS Simulator,name=\(simulator.simulator.name),OS=\(simulator.runtime.version)",
-            "-sdk", "iphonesimulator",
-            "COMPILER_INDEX_STORE_ENABLE=NO",
-            "CODE_SIGN_IDENTITY=",
-            "CODE_SIGNING_REQUIRED=NO",
-            "CODE_SIGNING_ALLOWED=NO",
-            "build-for-testing"
-        ]
-
-        if let derivedData = derivedData {
-            args.insert(contentsOf: ["-derivedDataPath", derivedData], at: args.count - 1)
-        }
+        var args = CommandHelpers.buildXcodebuildArgs(
+            projectPath: projectPath,
+            scheme: product.scheme,
+            configuration: product.testingConfiguration,
+            simulator: simulator,
+            derivedDataPath: derivedData
+        )
+        args.append("build-for-testing")
 
         try CommandHelpers.runXcodebuild(arguments: args, quiet: quiet) { exitCode in
             BuildError.buildFailed(exitCode: exitCode)
         }
 
         if !quiet {
-            Herald.declare(" Build for testing succeeded!")
-            print("")
+            Herald.declare("Build for testing succeeded!")
+            Herald.declare("")
         }
     }
 
@@ -327,27 +305,21 @@ struct Test: ParsableCommand {
         repoRoot: URL
     ) throws {
         if !quiet {
-            Herald.declare(" Running \(plan.displayName) for \(product.scheme)...")
+            Herald.declare("Running \(plan.displayName) for \(product.scheme)...")
         }
 
-        var args = [
-            "-project", projectPath.path,
-            "-scheme", product.scheme,
-            "-destination", "platform=iOS Simulator,name=\(simulator.simulator.name),OS=\(simulator.runtime.version)",
-            "COMPILER_INDEX_STORE_ENABLE=NO",
-            "CODE_SIGN_IDENTITY=",
-            "CODE_SIGNING_REQUIRED=NO",
-            "CODE_SIGNING_ALLOWED=NO"
-        ]
+        // Start with base args (without derivedDataPath since we handle it separately for tests)
+        var args = CommandHelpers.buildXcodebuildArgs(
+            projectPath: projectPath,
+            scheme: product.scheme,
+            configuration: product.testingConfiguration,
+            simulator: simulator,
+            derivedDataPath: derivedData
+        )
 
         // Add test plan if available
         if let testPlanName = plan.testPlanName(for: product) {
             args += ["-testPlan", testPlanName]
-        }
-
-        // Add derived data path
-        if let derivedData = derivedData {
-            args += ["-derivedDataPath", derivedData]
         }
 
         // Add test filter
@@ -378,22 +350,13 @@ struct Test: ParsableCommand {
     ) {
         // Print build-for-testing command if applicable
         if buildFirst {
-            var buildArgs = [
-                "-project", projectPath.path,
-                "-scheme", product.scheme,
-                "-configuration", product.testingConfiguration,
-                "-destination", "platform=iOS Simulator,name=\(simulator.simulator.name),OS=\(simulator.runtime.version)",
-                "-sdk", "iphonesimulator",
-                "COMPILER_INDEX_STORE_ENABLE=NO",
-                "CODE_SIGN_IDENTITY=",
-                "CODE_SIGNING_REQUIRED=NO",
-                "CODE_SIGNING_ALLOWED=NO"
-            ]
-
-            if let derivedData = derivedData {
-                buildArgs += ["-derivedDataPath", derivedData]
-            }
-
+            var buildArgs = CommandHelpers.buildXcodebuildArgs(
+                projectPath: projectPath,
+                scheme: product.scheme,
+                configuration: product.testingConfiguration,
+                simulator: simulator,
+                derivedDataPath: derivedData
+            )
             buildArgs.append("build-for-testing")
 
             print("# Build for testing")
@@ -402,24 +365,17 @@ struct Test: ParsableCommand {
         }
 
         // Print test command
-        var testArgs = [
-            "-project", projectPath.path,
-            "-scheme", product.scheme,
-            "-destination", "platform=iOS Simulator,name=\(simulator.simulator.name),OS=\(simulator.runtime.version)",
-            "COMPILER_INDEX_STORE_ENABLE=NO",
-            "CODE_SIGN_IDENTITY=",
-            "CODE_SIGNING_REQUIRED=NO",
-            "CODE_SIGNING_ALLOWED=NO"
-        ]
+        var testArgs = CommandHelpers.buildXcodebuildArgs(
+            projectPath: projectPath,
+            scheme: product.scheme,
+            configuration: product.testingConfiguration,
+            simulator: simulator,
+            derivedDataPath: derivedData
+        )
 
         // Add test plan if available
         if let testPlanName = plan.testPlanName(for: product) {
             testArgs += ["-testPlan", testPlanName]
-        }
-
-        // Add derived data path
-        if let derivedData = derivedData {
-            testArgs += ["-derivedDataPath", derivedData]
         }
 
         // Add test filter

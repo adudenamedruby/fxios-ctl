@@ -5,53 +5,6 @@
 import ArgumentParser
 import Foundation
 
-// MARK: - Build Product
-
-enum BuildProduct: String, ExpressibleByArgument, CaseIterable {
-    case firefox
-    case focus
-    case klar
-
-    var scheme: String {
-        switch self {
-        case .firefox: return "Fennec"
-        case .focus: return "Focus"
-        case .klar: return "Klar"
-        }
-    }
-
-    var projectPath: String {
-        switch self {
-        case .firefox: return "firefox-ios/Client.xcodeproj"
-        case .focus, .klar: return "focus-ios/Blockzilla.xcodeproj"
-        }
-    }
-
-    var defaultConfiguration: String {
-        switch self {
-        case .firefox: return "Fennec"
-        case .focus: return "FocusDebug"
-        case .klar: return "KlarDebug"
-        }
-    }
-
-    var testingConfiguration: String {
-        switch self {
-        case .firefox: return "Fennec_Testing"
-        case .focus: return "FocusDebug"
-        case .klar: return "KlarDebug"
-        }
-    }
-
-    var bundleIdentifier: String {
-        switch self {
-        case .firefox: return "org.mozilla.ios.Fennec"
-        case .focus: return "org.mozilla.ios.Focus"
-        case .klar: return "org.mozilla.ios.Klar"
-        }
-    }
-}
-
 // MARK: - Build Errors
 
 enum BuildError: Error, CustomStringConvertible {
@@ -84,20 +37,6 @@ struct Build: ParsableCommand {
         subcommands: [ListSims.self],
         defaultSubcommand: nil
     )
-
-    // MARK: - List Sims Subcommand
-
-    struct ListSims: ParsableCommand {
-        static let configuration = CommandConfiguration(
-            commandName: "list-sims",
-            abstract: "List available simulators and their shorthand codes."
-        )
-
-        func run() throws {
-            Herald.reset()
-            try CommandHelpers.printSimulatorList()
-        }
-    }
 
     // MARK: - Product Selection
 
@@ -257,44 +196,26 @@ struct Build: ParsableCommand {
         projectPath: URL,
         simulator: SimulatorSelection?
     ) -> [String] {
-        var args: [String] = []
-
-        // Project
-        args += ["-project", projectPath.path]
-
-        // Scheme
-        args += ["-scheme", product.scheme]
-
-        // Configuration
         let config = configuration ?? (forTesting ? product.testingConfiguration : product.defaultConfiguration)
-        args += ["-configuration", config]
 
-        // Destination and SDK
         if device {
-            args += ["-destination", "generic/platform=iOS"]
-            args += ["-sdk", "iphoneos"]
+            return CommandHelpers.buildXcodebuildArgsForDevice(
+                projectPath: projectPath,
+                scheme: product.scheme,
+                configuration: config,
+                derivedDataPath: derivedData
+            )
         } else if let sim = simulator {
-            let destination = "platform=iOS Simulator,name=\(sim.simulator.name),OS=\(sim.runtime.version)"
-            args += ["-destination", destination]
-            args += ["-sdk", "iphonesimulator"]
+            return CommandHelpers.buildXcodebuildArgs(
+                projectPath: projectPath,
+                scheme: product.scheme,
+                configuration: config,
+                simulator: sim,
+                derivedDataPath: derivedData
+            )
         }
 
-        // Derived data path
-        if let derivedData = derivedData {
-            args += ["-derivedDataPath", derivedData]
-        }
-
-        // Common build settings (from bitrise patterns)
-        args += ["COMPILER_INDEX_STORE_ENABLE=NO"]
-
-        // Code signing for simulator builds
-        if !device {
-            args += ["CODE_SIGN_IDENTITY="]
-            args += ["CODE_SIGNING_REQUIRED=NO"]
-            args += ["CODE_SIGNING_ALLOWED=NO"]
-        }
-
-        return args
+        return []
     }
 
     // MARK: - Expose Command

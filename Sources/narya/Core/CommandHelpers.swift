@@ -2,7 +2,24 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import ArgumentParser
 import Foundation
+
+// MARK: - Shared ListSims Subcommand
+
+/// Shared subcommand for listing available simulators
+/// Used by Build, Run, and Test commands
+struct ListSims: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "list-sims",
+        abstract: "List available simulators and their shorthand codes."
+    )
+
+    func run() throws {
+        Herald.reset()
+        try CommandHelpers.printSimulatorList()
+    }
+}
 
 // MARK: - Command Helpers
 
@@ -232,5 +249,72 @@ enum CommandHelpers {
                 throw error
             }
         }
+    }
+
+    // MARK: - Xcodebuild Argument Building
+
+    /// Builds xcodebuild arguments for simulator builds
+    static func buildXcodebuildArgs(
+        projectPath: URL,
+        scheme: String,
+        configuration: String,
+        simulator: SimulatorSelection,
+        derivedDataPath: String?
+    ) -> [String] {
+        var args: [String] = []
+
+        // Project and scheme
+        args += ["-project", projectPath.path]
+        args += ["-scheme", scheme]
+        args += ["-configuration", configuration]
+
+        // Destination and SDK for simulator
+        let destination = "platform=iOS Simulator,name=\(simulator.simulator.name),OS=\(simulator.runtime.version)"
+        args += ["-destination", destination]
+        args += ["-sdk", "iphonesimulator"]
+
+        // Derived data path
+        if let derivedData = derivedDataPath {
+            args += ["-derivedDataPath", derivedData]
+        }
+
+        // Common build settings
+        args += ["COMPILER_INDEX_STORE_ENABLE=NO"]
+
+        // Code signing for simulator builds
+        args += ["CODE_SIGN_IDENTITY="]
+        args += ["CODE_SIGNING_REQUIRED=NO"]
+        args += ["CODE_SIGNING_ALLOWED=NO"]
+
+        return args
+    }
+
+    /// Builds xcodebuild arguments for device builds
+    static func buildXcodebuildArgsForDevice(
+        projectPath: URL,
+        scheme: String,
+        configuration: String,
+        derivedDataPath: String?
+    ) -> [String] {
+        var args: [String] = []
+
+        // Project and scheme
+        args += ["-project", projectPath.path]
+        args += ["-scheme", scheme]
+        args += ["-configuration", configuration]
+
+        // Destination and SDK for device
+        args += ["-destination", "generic/platform=iOS"]
+        args += ["-sdk", "iphoneos"]
+
+        // Derived data path
+        if let derivedData = derivedDataPath {
+            args += ["-derivedDataPath", derivedData]
+        }
+
+        // Common build settings
+        args += ["COMPILER_INDEX_STORE_ENABLE=NO"]
+
+        return args
     }
 }

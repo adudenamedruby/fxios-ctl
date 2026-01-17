@@ -39,20 +39,6 @@ struct Run: ParsableCommand {
         defaultSubcommand: nil
     )
 
-    // MARK: - List Sims Subcommand
-
-    struct ListSims: ParsableCommand {
-        static let configuration = CommandConfiguration(
-            commandName: "list-sims",
-            abstract: "List available simulators and their shorthand codes."
-        )
-
-        func run() throws {
-            Herald.reset()
-            try CommandHelpers.printSimulatorList()
-        }
-    }
-
     // MARK: - Product Selection
 
     @Option(name: [.short, .long], help: "Product to build and run: firefox, focus, or klar.")
@@ -124,10 +110,10 @@ struct Run: ParsableCommand {
 
         // Print run info
         if !quiet {
-            Herald.declare(" Run Configuration:")
-            print("   Product: \(buildProduct.scheme)")
-            print("   Simulator: \(simulatorSelection.simulator.name) (iOS \(simulatorSelection.runtime.version))")
-            print("")
+            Herald.declare("Run Configuration:")
+            Herald.declare("  Product: \(buildProduct.scheme)")
+            Herald.declare("  Simulator: \(simulatorSelection.simulator.name) (iOS \(simulatorSelection.runtime.version))")
+            Herald.declare("")
         }
 
         // Clean if requested
@@ -150,7 +136,7 @@ struct Run: ParsableCommand {
 
         // Boot simulator if needed
         if !quiet {
-            Herald.declare(" Booting simulator...")
+            Herald.declare("Booting simulator...")
         }
         try SimulatorManager.bootSimulator(udid: simulatorSelection.simulator.udid)
 
@@ -162,20 +148,20 @@ struct Run: ParsableCommand {
 
         // Install the app
         if !quiet {
-            Herald.declare(" Installing \(buildProduct.scheme)...")
+            Herald.declare("Installing \(buildProduct.scheme)...")
         }
         try SimulatorManager.installApp(path: appPath, simulatorUdid: simulatorSelection.simulator.udid)
 
         // Launch the app
         if !quiet {
-            Herald.declare(" Launching \(buildProduct.scheme)...")
+            Herald.declare("Launching \(buildProduct.scheme)...")
         }
         try SimulatorManager.launchApp(
             bundleId: buildProduct.bundleIdentifier,
             simulatorUdid: simulatorSelection.simulator.udid
         )
 
-        Herald.declare(" \(buildProduct.scheme) is running in \(simulatorSelection.simulator.name)!")
+        Herald.declare("\(buildProduct.scheme) is running in \(simulatorSelection.simulator.name)!")
     }
 
     // MARK: - Private Methods
@@ -187,13 +173,16 @@ struct Run: ParsableCommand {
         repoRoot: URL
     ) throws {
         if !quiet {
-            Herald.declare(" Building \(product.scheme)...")
+            Herald.declare("Building \(product.scheme)...")
         }
 
-        var args = buildXcodebuildArgs(
-            product: product,
+        let config = configuration ?? product.defaultConfiguration
+        var args = CommandHelpers.buildXcodebuildArgs(
             projectPath: projectPath,
-            simulator: simulator
+            scheme: product.scheme,
+            configuration: config,
+            simulator: simulator,
+            derivedDataPath: derivedData
         )
 
         // Add build action
@@ -204,47 +193,9 @@ struct Run: ParsableCommand {
         }
 
         if !quiet {
-            Herald.declare(" Build succeeded!")
-            print("")
+            Herald.declare("Build succeeded!")
+            Herald.declare("")
         }
-    }
-
-    private func buildXcodebuildArgs(
-        product: BuildProduct,
-        projectPath: URL,
-        simulator: SimulatorSelection
-    ) -> [String] {
-        var args: [String] = []
-
-        // Project
-        args += ["-project", projectPath.path]
-
-        // Scheme
-        args += ["-scheme", product.scheme]
-
-        // Configuration
-        let config = configuration ?? product.defaultConfiguration
-        args += ["-configuration", config]
-
-        // Destination and SDK
-        let destination = "platform=iOS Simulator,name=\(simulator.simulator.name),OS=\(simulator.runtime.version)"
-        args += ["-destination", destination]
-        args += ["-sdk", "iphonesimulator"]
-
-        // Derived data path
-        if let derivedData = derivedData {
-            args += ["-derivedDataPath", derivedData]
-        }
-
-        // Common build settings
-        args += ["COMPILER_INDEX_STORE_ENABLE=NO"]
-
-        // Code signing for simulator builds
-        args += ["CODE_SIGN_IDENTITY="]
-        args += ["CODE_SIGNING_REQUIRED=NO"]
-        args += ["CODE_SIGNING_ALLOWED=NO"]
-
-        return args
     }
 
     private func findBuiltApp(product: BuildProduct, repoRoot: URL) throws -> String {
@@ -315,10 +266,13 @@ struct Run: ParsableCommand {
         }
 
         // Print build command
-        var buildArgs = buildXcodebuildArgs(
-            product: product,
+        let config = configuration ?? product.defaultConfiguration
+        var buildArgs = CommandHelpers.buildXcodebuildArgs(
             projectPath: projectPath,
-            simulator: simulator
+            scheme: product.scheme,
+            configuration: config,
+            simulator: simulator,
+            derivedDataPath: derivedData
         )
         buildArgs.append("build")
 
@@ -336,7 +290,6 @@ struct Run: ParsableCommand {
         print("")
 
         // Note: We can't know the exact app path without building
-        let config = configuration ?? product.defaultConfiguration
         let appPathExample = "~/Library/Developer/Xcode/DerivedData/.../Build/Products/\(config)-iphonesimulator/\(product.scheme).app"
 
         print("# Install app (path determined after build)")

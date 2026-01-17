@@ -234,18 +234,10 @@ struct Telemetry: ParsableCommand {
     // MARK: - String Helpers
 
     private func camelToSnakeCase(_ input: String) -> String {
-        var result = ""
-        for (index, char) in input.enumerated() {
-            if char.isUppercase && index > 0 {
-                result += "_"
-            }
-            result += char.lowercased()
-        }
-        return result
+        StringUtils.camelToSnakeCase(input)
     }
 
     private func capitalizeFirst(_ input: String) -> String {
-        guard let first = input.first else { return input }
-        return first.uppercased() + input.dropFirst()
+        StringUtils.capitalizeFirst(input)
     }
 }
