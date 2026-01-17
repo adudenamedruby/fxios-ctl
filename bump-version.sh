@@ -65,8 +65,11 @@ if git ls-remote --tags origin "refs/tags/${tag}" | grep -q .; then
     die "git tag '${tag}' already exists on origin"
 fi
 
+jj commit -m "Release ${tag}"
+jj push -m
+
 # Create and push tag
 git tag "${tag}"
 git push origin "${tag}"
 
-echo "$new"
+echo "version updated to $new"
