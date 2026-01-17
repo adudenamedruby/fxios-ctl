@@ -24,7 +24,7 @@ enum CommandHelpers {
 
     // MARK: - Simulator Utilities
 
-    /// Prints a formatted list of available iOS simulators
+    /// Prints a formatted table of available iOS simulators with their shorthand codes
     static func printSimulatorList() throws {
         try ToolChecker.requireSimctl()
 
@@ -35,20 +35,78 @@ enum CommandHelpers {
             return
         }
 
-        Herald.declare("Available iOS Simulators:")
-        Herald.declare("")
+        // Gather unique devices with their available iOS versions
+        var deviceInfo: [String: (shorthand: String?, versions: [String], isBooted: Bool)] = [:]
 
         for (runtime, devices) in simulatorsByRuntime {
-            Herald.declare("\(runtime.name):")
-
             for device in devices {
-                let bootedIndicator = device.isBooted ? " (Booted)" : ""
-                let udidShort = String(device.udid.prefix(8)) + "..."
-                Herald.declare("  \(device.name)\(bootedIndicator)".padding(toLength: 35, withPad: " ", startingAt: 0) + udidShort)
+                if var info = deviceInfo[device.name] {
+                    if !info.versions.contains(runtime.version) {
+                        info.versions.append(runtime.version)
+                    }
+                    if device.isBooted {
+                        info.isBooted = true
+                    }
+                    deviceInfo[device.name] = info
+                } else {
+                    let shorthand = DeviceShorthand.shorthand(for: device.name)
+                    deviceInfo[device.name] = (shorthand: shorthand, versions: [runtime.version], isBooted: device.isBooted)
+                }
             }
-
-            Herald.declare("")
         }
+
+        // Sort devices: iPhones first, then iPads, alphabetically within each group
+        let sortedDevices = deviceInfo.keys.sorted { name1, name2 in
+            let isPhone1 = name1.hasPrefix("iPhone")
+            let isPhone2 = name2.hasPrefix("iPhone")
+            if isPhone1 != isPhone2 {
+                return isPhone1 // iPhones come first
+            }
+            return name1 < name2
+        }
+
+        // Calculate column widths
+        let deviceHeader = "Device"
+        let shorthandHeader = "Shorthand"
+        let versionsHeader = "iOS Versions"
+
+        var maxDeviceWidth = deviceHeader.count
+        var maxShorthandWidth = shorthandHeader.count
+
+        for name in sortedDevices {
+            maxDeviceWidth = max(maxDeviceWidth, name.count + (deviceInfo[name]?.isBooted == true ? 9 : 0)) // " (Booted)"
+            if let shorthand = deviceInfo[name]?.shorthand {
+                maxShorthandWidth = max(maxShorthandWidth, shorthand.count)
+            }
+        }
+
+        // Add padding
+        maxDeviceWidth += 2
+        maxShorthandWidth += 2
+
+        // Print header
+        Herald.declare("Available Simulators:")
+        print("")
+
+        let headerLine = deviceHeader.padding(toLength: maxDeviceWidth, withPad: " ", startingAt: 0) +
+                        shorthandHeader.padding(toLength: maxShorthandWidth, withPad: " ", startingAt: 0) +
+                        versionsHeader
+        print(headerLine)
+        print(String(repeating: "-", count: headerLine.count + 10))
+
+        // Print devices
+        for name in sortedDevices {
+            guard let info = deviceInfo[name] else { continue }
+
+            let bootedSuffix = info.isBooted ? " (Booted)" : ""
+            let deviceCol = (name + bootedSuffix).padding(toLength: maxDeviceWidth, withPad: " ", startingAt: 0)
+            let shorthandCol = (info.shorthand ?? "-").padding(toLength: maxShorthandWidth, withPad: " ", startingAt: 0)
+            let versionsCol = info.versions.joined(separator: ", ")
+
+            print(deviceCol + shorthandCol + versionsCol)
+        }
+
+        print("")
 
         // Show default
         do {
@@ -57,6 +115,9 @@ enum CommandHelpers {
         } catch {
             // Ignore errors finding default
         }
+
+        print("")
+        Herald.declare("Usage: --sim <shorthand>  (e.g., --sim 17pro)")
     }
 
     /// Resolves simulator from shorthand or returns default

@@ -64,7 +64,7 @@ enum SimulatorManagerError: Error, CustomStringConvertible {
         case .noSimulatorsFound:
             return "No iOS simulators found. Please install simulators via Xcode."
         case .simulatorNotFound(let name):
-            return "Simulator '\(name)' not found. Use --list-simulators to see available options."
+            return "Simulator '\(name)' not found. Use --list-sims to see available options."
         case .parseError(let reason):
             return "Failed to parse simulator list: \(reason)"
         case .bootFailed(let reason):

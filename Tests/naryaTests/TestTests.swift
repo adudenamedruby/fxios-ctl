@@ -267,6 +267,12 @@ struct TestCommandTests {
         #expect(command.expose == true)
     }
 
+    @Test("Can parse list-sims flag")
+    func parseListSims() throws {
+        let command = try Test.parse(["--list-sims"])
+        #expect(command.listSims == true)
+    }
+
     @Test("Default values are correct")
     func defaultValues() throws {
         let command = try Test.parse([])
@@ -274,6 +280,7 @@ struct TestCommandTests {
         #expect(command.plan == .unit)
         #expect(command.filter == nil)
         #expect(command.sim == nil)
+        #expect(command.listSims == false)
         #expect(command.os == nil)
         #expect(command.buildFirst == false)
         #expect(command.derivedData == nil)

@@ -227,6 +227,69 @@ enum DeviceShorthand {
         return "^iPad \(typeName) \(size)-inch"
     }
 
+    // MARK: - Shorthand Derivation
+
+    /// Derives the shorthand code from a device name (e.g., "iPhone 17 Pro" → "17pro")
+    /// Returns nil if no shorthand can be derived
+    static func shorthand(for deviceName: String) -> String? {
+        // iPhone patterns
+        if deviceName.hasPrefix("iPhone") {
+            // iPhone Air
+            if deviceName == "iPhone Air" {
+                return "air"
+            }
+            // iPhone SE
+            if deviceName.hasPrefix("iPhone SE") {
+                return "se"
+            }
+            // iPhone 16e
+            if let match = deviceName.range(of: #"^iPhone (\d+)e$"#, options: .regularExpression) {
+                let number = deviceName[match].replacingOccurrences(of: "iPhone ", with: "").replacingOccurrences(of: "e", with: "")
+                return "\(number)e"
+            }
+            // iPhone XX Pro Max
+            if let match = deviceName.range(of: #"^iPhone (\d+) Pro Max$"#, options: .regularExpression) {
+                let number = deviceName[match].replacingOccurrences(of: "iPhone ", with: "").replacingOccurrences(of: " Pro Max", with: "")
+                return "\(number)max"
+            }
+            // iPhone XX Pro
+            if let match = deviceName.range(of: #"^iPhone (\d+) Pro$"#, options: .regularExpression) {
+                let number = deviceName[match].replacingOccurrences(of: "iPhone ", with: "").replacingOccurrences(of: " Pro", with: "")
+                return "\(number)pro"
+            }
+            // iPhone XX Plus
+            if let match = deviceName.range(of: #"^iPhone (\d+) Plus$"#, options: .regularExpression) {
+                let number = deviceName[match].replacingOccurrences(of: "iPhone ", with: "").replacingOccurrences(of: " Plus", with: "")
+                return "\(number)plus"
+            }
+            // iPhone XX (base model)
+            if let match = deviceName.range(of: #"^iPhone (\d+)$"#, options: .regularExpression) {
+                let number = deviceName[match].replacingOccurrences(of: "iPhone ", with: "")
+                return number
+            }
+        }
+
+        // iPad patterns
+        if deviceName.hasPrefix("iPad") {
+            // iPad mini
+            if deviceName.hasPrefix("iPad mini") {
+                return "mini"
+            }
+            // iPad Air XX-inch
+            if let match = deviceName.range(of: #"^iPad Air (\d+)-inch"#, options: .regularExpression) {
+                let size = deviceName[match].replacingOccurrences(of: "iPad Air ", with: "").replacingOccurrences(of: "-inch", with: "")
+                return "air\(size)"
+            }
+            // iPad Pro XX-inch
+            if let match = deviceName.range(of: #"^iPad Pro (\d+)-inch"#, options: .regularExpression) {
+                let size = deviceName[match].replacingOccurrences(of: "iPad Pro ", with: "").replacingOccurrences(of: "-inch", with: "")
+                return "pro\(size)"
+            }
+        }
+
+        return nil
+    }
+
     // MARK: - Helpers
 
     /// Gathers available simulator names for a device type (for error messages)
