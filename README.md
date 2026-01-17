@@ -22,7 +22,7 @@ If a command doesn't materially achieve one of these goals & the bonus goal, it 
 - macOS 14+
 - Swift 6.0+
 
-To test on firefox-ios, you will also need the dependencies from that repo.
+To use this with the firefox-ios, repo, you will also need the dependencies from that repo.
 
 ## Installation
 
@@ -142,10 +142,7 @@ Builds Firefox, Focus, or Klar for development using xcodebuild. By default, bui
 
 The simulator is auto-detected to use the latest iOS version with a standard iPhone model (non-Pro, non-Max).
 
-**Simulator shorthand patterns:**
-
-- iPhone: `17`, `17pro`, `17max`, `16e`, `air`, `se`
-- iPad: `air11`, `air13`, `pro11`, `pro13`, `mini`
+Please read [Simulator Shorthand](#simulator-shorthand) for an explanation of the `--sim` flag.
 
 #### `clean`
 
@@ -157,11 +154,17 @@ Runs SwiftLint on the codebase. By default, lints only files changed compared to
 
 #### `nimbus`
 
-Manages Nimbus feature configuration files. Updates the `include` block in `nimbus.fml.yaml` with feature files from the `nimbus-features/` directory.
+Manages Nimbus feature flags across the firefox-ios codebase. Subcommands:
+
+- `refresh` - Updates the include block in `nimbus.fml.yaml` with feature files from the `nimbus-features/` directory
+- `add` - Creates a new feature with all required boilerplate (YAML file and Swift code)
+- `remove` - Removes a feature from all locations
 
 #### `run`
 
 Builds and launches Firefox, Focus, or Klar in the iOS Simulator. This is equivalent to running `narya build` followed by installing and launching the app.
+
+Please read [Simulator Shorthand](#simulator-shorthand) for an explanation of the `--sim` flag.
 
 #### `telemetry`
 
@@ -175,13 +178,70 @@ Test plans available:
 
 - `unit` - Unit tests (default)
 - `smoke` - Smoke/UI tests
-- `accessibility` - Accessibility tests (Firefox only)
-- `performance` - Performance tests (Firefox only)
+- `accessibility` (or `a11y`) - Accessibility tests (Firefox only)
+- `performance` (or `perf`) - Performance tests (Firefox only)
 - `full` - Full functional tests (Focus/Klar only)
+
+Please read [Simulator Shorthand](#simulator-shorthand) for an explanation of the `--sim` flag.
 
 #### `version`
 
 Displays or updates version numbers across the repository. Without options, shows the current version and git SHA.
+
+### Simulator Shorthands
+
+The `--sim` option in `build`, `run`, and `test` subcommands accepts either a shorthand code or the full simulator name (e.g., `--sim 17pro` or `--sim "iPhone 17 Pro"`). Use the `list-sims` subcommand to see available simulators on your current machine and their respective shorthands. The shorthands generally follow a simple pattern for devices, as outlined below:
+
+#### Design Principles for Shorthand Patterns
+
+1. Shorthands must be derivable - A user should be able to guess the shorthand from the device name
+2. No shorthand is OK - Devices that don't fit the pattern get "-" and require the full name
+3. Bidirectional consistency - parseShorthand() and shorthand(for:) use the same rules
+
+In general, these are the shorthand rules:
+Shorthand Rules
+
+iPhone:
+┌─────────┬──────────┬─────────────────────────────┐
+│ Pattern │ Examples │ Matches │
+├─────────┼──────────┼─────────────────────────────┤
+│ <N> │ 17 │ iPhone 17 (base model only) │
+├─────────┼──────────┼─────────────────────────────┤
+│ <N>pro │ 17pro │ iPhone 17 Pro │
+├─────────┼──────────┼─────────────────────────────┤
+│ <N>max │ 17max │ iPhone 17 Pro Max │
+├─────────┼──────────┼─────────────────────────────┤
+│ <N>plus │ 17plus │ iPhone 17 Plus │
+├─────────┼──────────┼─────────────────────────────┤
+│ <N>e │ 16e │ iPhone 16e │
+├─────────┼──────────┼─────────────────────────────┤
+│ se │ se │ iPhone SE (any generation) │
+├─────────┼──────────┼─────────────────────────────┤
+│ air │ air │ iPhone Air │
+└─────────┴──────────┴─────────────────────────────┘
+iPad:
+┌─────────────┬──────────────────────┬────────────────────────────────────────────────┐
+│ Pattern │ Examples │ Matches │
+├─────────────┼──────────────────────┼────────────────────────────────────────────────┤
+│ air<size> │ air11, air13 │ iPad Air 11/13-inch (13 also matches 12.9) │
+├─────────────┼──────────────────────┼────────────────────────────────────────────────┤
+│ pro<size> │ pro11, pro13, pro129 │ iPad Pro (13 matches 12.9 too; 129 is precise) │
+├─────────────┼──────────────────────┼────────────────────────────────────────────────┤
+│ mini │ mini │ iPad mini (any) │
+├─────────────┼──────────────────────┼────────────────────────────────────────────────┤
+│ mini<N>g │ mini6g, mini7g │ iPad mini (Nth generation) │
+├─────────────┼──────────────────────┼────────────────────────────────────────────────┤
+│ miniA<chip> │ miniA17 │ iPad mini (A17 Pro) │
+├─────────────┼──────────────────────┼────────────────────────────────────────────────┤
+│ pad<N>g │ pad10g │ iPad (Nth generation) │
+├─────────────┼──────────────────────┼────────────────────────────────────────────────┤
+│ padA<chip> │ padA16 │ iPad (A16) │
+└─────────────┴──────────────────────┴────────────────────────────────────────────────┘
+Matching behavior:
+
+- pro13 matches both "13-inch" and "12.9-inch", but prefers exact match if both exist
+- pro129 matches only "12.9-inch" (precise)
+- Devices that don't fit patterns get "-" → user must use full name
 
 ## License
 

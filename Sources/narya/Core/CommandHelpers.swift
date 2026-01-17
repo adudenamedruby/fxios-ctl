@@ -66,7 +66,7 @@ enum CommandHelpers {
         }
 
         // Calculate column widths
-        let deviceHeader = "Device"
+        let deviceHeader = "Device Name"
         let shorthandHeader = "Shorthand"
         let versionsHeader = "iOS Versions"
 
@@ -118,6 +118,7 @@ enum CommandHelpers {
 
         Herald.declare("")
         Herald.declare("Usage: --sim <shorthand or name>  (e.g., --sim 17pro, --sim \"iPhone 17 Pro\")")
+        Herald.declare("Note: Devices marked \"-\" require the full name (e.g., --sim \"Device Name\")")
     }
 
     /// Resolves simulator from shorthand, exact name, or returns default
