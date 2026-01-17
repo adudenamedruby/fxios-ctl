@@ -86,13 +86,13 @@ enum CommandHelpers {
 
         // Print header
         Herald.declare("Available Simulators:")
-        print("")
+        Herald.declare("")
 
         let headerLine = deviceHeader.padding(toLength: maxDeviceWidth, withPad: " ", startingAt: 0) +
                         shorthandHeader.padding(toLength: maxShorthandWidth, withPad: " ", startingAt: 0) +
                         versionsHeader
-        print(headerLine)
-        print(String(repeating: "-", count: headerLine.count + 10))
+        Herald.declare(headerLine)
+        Herald.declare(String(repeating: "-", count: headerLine.count + 10))
 
         // Print devices
         for name in sortedDevices {
@@ -103,10 +103,10 @@ enum CommandHelpers {
             let shorthandCol = (info.shorthand ?? "-").padding(toLength: maxShorthandWidth, withPad: " ", startingAt: 0)
             let versionsCol = info.versions.joined(separator: ", ")
 
-            print(deviceCol + shorthandCol + versionsCol)
+            Herald.declare(deviceCol + shorthandCol + versionsCol)
         }
 
-        print("")
+        Herald.declare("")
 
         // Show default
         do {
@@ -116,17 +116,26 @@ enum CommandHelpers {
             // Ignore errors finding default
         }
 
-        print("")
-        Herald.declare("Usage: --sim <shorthand>  (e.g., --sim 17pro)")
+        Herald.declare("")
+        Herald.declare("Usage: --sim <shorthand or name>  (e.g., --sim 17pro, --sim \"iPhone 17 Pro\")")
     }
 
-    /// Resolves simulator from shorthand or returns default
+    /// Resolves simulator from shorthand, exact name, or returns default
     static func resolveSimulator(shorthand: String?, osVersion: String?) throws -> SimulatorSelection {
         if let shorthand = shorthand {
-            return try DeviceShorthand.findSimulator(
-                shorthand: shorthand,
-                osVersion: osVersion
-            )
+            // Try shorthand first
+            do {
+                return try DeviceShorthand.findSimulator(
+                    shorthand: shorthand,
+                    osVersion: osVersion
+                )
+            } catch let error as DeviceShorthandError {
+                // If it's an invalid shorthand, try as an exact name
+                if case .invalidShorthand = error {
+                    return try SimulatorManager.findSimulator(name: shorthand, osVersion: osVersion)
+                }
+                throw error
+            }
         } else {
             return try SimulatorManager.findDefaultSimulator()
         }

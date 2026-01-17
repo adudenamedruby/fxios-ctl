@@ -32,10 +32,26 @@ struct Run: ParsableCommand {
             This is equivalent to running 'narya build' followed by launching \
             the app.
 
-            Use --list-sims to see available simulators and their shorthand codes.
+            Use 'narya run list-sims' to see available simulators and their shorthand codes.
             The latest iOS version is used unless --os is specified.
-            """
+            """,
+        subcommands: [ListSims.self],
+        defaultSubcommand: nil
     )
+
+    // MARK: - List Sims Subcommand
+
+    struct ListSims: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            commandName: "list-sims",
+            abstract: "List available simulators and their shorthand codes."
+        )
+
+        func run() throws {
+            Herald.reset()
+            try CommandHelpers.printSimulatorList()
+        }
+    }
 
     // MARK: - Product Selection
 
@@ -44,11 +60,8 @@ struct Run: ParsableCommand {
 
     // MARK: - Destination
 
-    @Option(name: .long, help: "Simulator shorthand (e.g., 17, 17pro, air13, pro11, mini).")
+    @Option(name: .long, help: "Simulator shorthand or name (e.g., 17pro, mini, \"iPhone 17 Pro\"). Use 'list-sims' subcommand to see shorthands.")
     var sim: String?
-
-    @Flag(name: .long, help: "List available simulators and their shorthand codes.")
-    var listSims = false
 
     @Option(name: .long, help: "iOS version for simulator (default: latest).")
     var os: String?
@@ -78,13 +91,6 @@ struct Run: ParsableCommand {
     // MARK: - Run
 
     mutating func run() throws {
-        // Handle --list-sims separately (doesn't need repo validation)
-        if listSims {
-            Herald.reset()
-            try CommandHelpers.printSimulatorList()
-            return
-        }
-
         Herald.reset()
 
         // Validate we're in a firefox-ios repository

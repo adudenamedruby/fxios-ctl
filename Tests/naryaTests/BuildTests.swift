@@ -189,12 +189,6 @@ struct BuildTests {
         #expect(command.quiet == true)
     }
 
-    @Test("Can parse list-sims flag")
-    func parseListSims() throws {
-        let command = try Build.parse(["--list-sims"])
-        #expect(command.listSims == true)
-    }
-
     @Test("Can parse expose flag")
     func parseExpose() throws {
         let command = try Build.parse(["--expose"])
@@ -214,7 +208,6 @@ struct BuildTests {
         #expect(command.skipResolve == false)
         #expect(command.clean == false)
         #expect(command.quiet == false)
-        #expect(command.listSims == false)
         #expect(command.expose == false)
     }
 

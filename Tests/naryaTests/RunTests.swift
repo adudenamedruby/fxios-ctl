@@ -116,12 +116,6 @@ struct RunTests {
         #expect(command.expose == true)
     }
 
-    @Test("Can parse list-sims flag")
-    func parseListSims() throws {
-        let command = try Run.parse(["--list-sims"])
-        #expect(command.listSims == true)
-    }
-
     @Test("Default values are correct")
     func defaultValues() throws {
         let command = try Run.parse([])
@@ -134,7 +128,6 @@ struct RunTests {
         #expect(command.clean == false)
         #expect(command.quiet == false)
         #expect(command.expose == false)
-        #expect(command.listSims == false)
     }
 
     @Test("Can combine multiple flags")

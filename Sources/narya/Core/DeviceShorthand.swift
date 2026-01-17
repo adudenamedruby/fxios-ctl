@@ -31,7 +31,10 @@ enum DeviceShorthandError: Error, CustomStringConvertible {
                 Invalid simulator shorthand '\(shorthand)'.
 
                 iPhone examples: 17, 17pro, 17max, 16e, air, se
-                iPad examples:   air11, air13, pro11, pro13, mini
+                iPad examples:   air11, air13, pro11, pro13, mini, pad10g, padA16
+
+                You can also use the full simulator name (e.g., "iPhone 17 Pro").
+                Use --list-sims to see available simulators and their shorthands.
                 """
 
         case .simulatorNotFound(let shorthand, let type, let available):
@@ -200,10 +203,30 @@ enum DeviceShorthand {
     /// - `pro11` → iPad Pro 11-inch
     /// - `pro13` → iPad Pro 13-inch
     /// - `mini` → iPad mini
+    /// - `pad10g` → iPad (10th generation)
+    /// - `padA16` → iPad (A16)
     private static func ipadPattern(for shorthand: String) -> String? {
         // Special case: mini
         if shorthand == "mini" {
             return "^iPad mini"
+        }
+
+        // Special case: pad<N>g → iPad (Nth generation)
+        let generationPattern = #"^pad(\d+)g$"#
+        if let genRegex = try? NSRegularExpression(pattern: generationPattern, options: .caseInsensitive),
+           let genMatch = genRegex.firstMatch(in: shorthand, range: NSRange(shorthand.startIndex..., in: shorthand)),
+           let genRange = Range(genMatch.range(at: 1), in: shorthand) {
+            let generation = String(shorthand[genRange])
+            return "^iPad \\(\(generation)th generation\\)$"
+        }
+
+        // Special case: padA<chip> → iPad (A<chip>)
+        let chipPattern = #"^pada(\d+)$"#
+        if let chipRegex = try? NSRegularExpression(pattern: chipPattern, options: .caseInsensitive),
+           let chipMatch = chipRegex.firstMatch(in: shorthand, range: NSRange(shorthand.startIndex..., in: shorthand)),
+           let chipRange = Range(chipMatch.range(at: 1), in: shorthand) {
+            let chip = String(shorthand[chipRange])
+            return "^iPad \\(A\(chip)\\)$"
         }
 
         // Pattern: <type><size> where type is air|pro and size is a number
@@ -274,6 +297,20 @@ enum DeviceShorthand {
             // iPad mini
             if deviceName.hasPrefix("iPad mini") {
                 return "mini"
+            }
+            // iPad (Nth generation)
+            if let match = deviceName.range(of: #"^iPad \((\d+)th generation\)$"#, options: .regularExpression) {
+                let generation = deviceName[match]
+                    .replacingOccurrences(of: "iPad (", with: "")
+                    .replacingOccurrences(of: "th generation)", with: "")
+                return "pad\(generation)g"
+            }
+            // iPad (A<chip>)
+            if let match = deviceName.range(of: #"^iPad \(A(\d+)\)$"#, options: .regularExpression) {
+                let chip = deviceName[match]
+                    .replacingOccurrences(of: "iPad (A", with: "")
+                    .replacingOccurrences(of: ")", with: "")
+                return "padA\(chip)"
             }
             // iPad Air XX-inch
             if let match = deviceName.range(of: #"^iPad Air (\d+)-inch"#, options: .regularExpression) {
