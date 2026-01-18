@@ -127,6 +127,7 @@ All narya output is handled by the `Herald`. The maintain clarity between `narya
 | `narya build`     | Build Firefox, Focus, or Klar for development             |
 | `narya clean`     | Clean up cached or generated files                        |
 | `narya doctor`    | Check development environment for required tools          |
+| `narya l10n`      | Localization tools for managing XLIFF files and translations |
 | `narya lint`      | Run SwiftLint on the codebase                             |
 | `narya nimbus`    | Manage Nimbus feature configuration files                 |
 | `narya run`       | Build and launch in the iOS Simulator                     |
@@ -160,6 +161,16 @@ Checks performed:
 - **Required tools**: git, node, npm, swift, xcodebuild, xcode-select, simctl
 - **Optional tools**: swiftlint (reports status but won't flag as issue if missing)
 - **Repository context** (when run from firefox-ios): validates `.narya.yaml`, checks git hooks installation, shows configured defaults
+
+#### `l10n`
+
+Localization tools for managing XLIFF files and translations between Xcode projects and Mozilla's translation platform (Pontoon). Subcommands:
+
+- `export` - Extract localizable strings from Xcode to XLIFF files in the l10n repository
+- `import` - Import translated XLIFF files back into the Xcode project
+- `templates` - Create blank template XLIFF files for translators
+
+These commands handle locale code mapping between Xcode and Pontoon formats, filtering of non-translatable keys, required translation validation, and comment overrides from `l10n_comments.txt`.
 
 #### `lint`
 
