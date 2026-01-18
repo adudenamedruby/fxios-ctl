@@ -49,30 +49,50 @@ struct SimulatorSelection {
 // MARK: - Errors
 
 enum SimulatorManagerError: Error, CustomStringConvertible {
-    case simctlFailed(String)
+    case simctlFailed(reason: String, underlyingError: Error?)
     case noSimulatorsFound
     case simulatorNotFound(String)
-    case parseError(String)
-    case bootFailed(String)
-    case installFailed(String)
-    case launchFailed(String)
+    case parseError(reason: String, underlyingError: Error?)
+    case bootFailed(reason: String, underlyingError: Error?)
+    case installFailed(reason: String, underlyingError: Error?)
+    case launchFailed(reason: String, underlyingError: Error?)
 
     var description: String {
         switch self {
-        case .simctlFailed(let reason):
-            return "simctl command failed: \(reason)"
+        case .simctlFailed(let reason, let underlyingError):
+            var message = "simctl command failed: \(reason)"
+            if let error = underlyingError {
+                message += " (\(error.localizedDescription))"
+            }
+            return message
         case .noSimulatorsFound:
             return "No iOS simulators found. Please install simulators via Xcode."
         case .simulatorNotFound(let name):
             return "Simulator '\(name)' not found. Use --list-sims to see available options."
-        case .parseError(let reason):
-            return "Failed to parse simulator list: \(reason)"
-        case .bootFailed(let reason):
-            return "Failed to boot simulator: \(reason)"
-        case .installFailed(let reason):
-            return "Failed to install app: \(reason)"
-        case .launchFailed(let reason):
-            return "Failed to launch app: \(reason)"
+        case .parseError(let reason, let underlyingError):
+            var message = "Failed to parse simulator list: \(reason)"
+            if let error = underlyingError {
+                message += " (\(error.localizedDescription))"
+            }
+            return message
+        case .bootFailed(let reason, let underlyingError):
+            var message = "Failed to boot simulator: \(reason)"
+            if let error = underlyingError {
+                message += " (\(error.localizedDescription))"
+            }
+            return message
+        case .installFailed(let reason, let underlyingError):
+            var message = "Failed to install app: \(reason)"
+            if let error = underlyingError {
+                message += " (\(error.localizedDescription))"
+            }
+            return message
+        case .launchFailed(let reason, let underlyingError):
+            var message = "Failed to launch app: \(reason)"
+            if let error = underlyingError {
+                message += " (\(error.localizedDescription))"
+            }
+            return message
         }
     }
 }
@@ -204,7 +224,8 @@ enum SimulatorManager {
         do {
             try ShellRunner.run("xcrun", arguments: ["simctl", "boot", udid])
         } catch {
-            throw SimulatorManagerError.bootFailed(String(describing: error))
+            Logger.error("Simulator boot failed for UDID: \(udid)", error: error)
+            throw SimulatorManagerError.bootFailed(reason: "simctl boot failed", underlyingError: error)
         }
     }
 
@@ -213,7 +234,8 @@ enum SimulatorManager {
         do {
             try ShellRunner.run("xcrun", arguments: ["simctl", "install", simulatorUdid, path])
         } catch {
-            throw SimulatorManagerError.installFailed(String(describing: error))
+            Logger.error("App install failed for path: \(path)", error: error)
+            throw SimulatorManagerError.installFailed(reason: "simctl install failed", underlyingError: error)
         }
     }
 
@@ -222,7 +244,8 @@ enum SimulatorManager {
         do {
             try ShellRunner.run("xcrun", arguments: ["simctl", "launch", simulatorUdid, bundleId])
         } catch {
-            throw SimulatorManagerError.launchFailed(String(describing: error))
+            Logger.error("App launch failed for bundle ID: \(bundleId)", error: error)
+            throw SimulatorManagerError.launchFailed(reason: "simctl launch failed", underlyingError: error)
         }
     }
 
@@ -284,19 +307,22 @@ enum SimulatorManager {
     // MARK: - Private Helpers
 
     private static func getRuntimes() throws -> [SimulatorRuntime] {
+        Logger.debug("Fetching simulator runtimes via simctl")
         let output: String
         do {
             output = try ShellRunner.runAndCapture("xcrun", arguments: ["simctl", "list", "runtimes", "--json"])
         } catch {
-            throw SimulatorManagerError.simctlFailed(String(describing: error))
+            Logger.error("Failed to fetch runtimes", error: error)
+            throw SimulatorManagerError.simctlFailed(reason: "Failed to list runtimes", underlyingError: error)
         }
 
         guard let data = output.data(using: .utf8) else {
-            throw SimulatorManagerError.parseError("Invalid output encoding")
+            throw SimulatorManagerError.parseError(reason: "Invalid output encoding", underlyingError: nil)
         }
 
         do {
             let response = try JSONDecoder().decode(SimctlRuntimesResponse.self, from: data)
+            Logger.debug("Found \(response.runtimes.count) runtimes")
             return response.runtimes.map { runtime in
                 SimulatorRuntime(
                     identifier: runtime.identifier,
@@ -306,20 +332,23 @@ enum SimulatorManager {
                 )
             }
         } catch {
-            throw SimulatorManagerError.parseError(String(describing: error))
+            Logger.error("Failed to parse runtimes JSON", error: error)
+            throw SimulatorManagerError.parseError(reason: "JSON decoding failed", underlyingError: error)
         }
     }
 
     private static func getDevices() throws -> [String: [Simulator]] {
+        Logger.debug("Fetching simulator devices via simctl")
         let output: String
         do {
             output = try ShellRunner.runAndCapture("xcrun", arguments: ["simctl", "list", "devices", "--json"])
         } catch {
-            throw SimulatorManagerError.simctlFailed(String(describing: error))
+            Logger.error("Failed to fetch devices", error: error)
+            throw SimulatorManagerError.simctlFailed(reason: "Failed to list devices", underlyingError: error)
         }
 
         guard let data = output.data(using: .utf8) else {
-            throw SimulatorManagerError.parseError("Invalid output encoding")
+            throw SimulatorManagerError.parseError(reason: "Invalid output encoding", underlyingError: nil)
         }
 
         do {
@@ -337,9 +366,11 @@ enum SimulatorManager {
                 }
             }
 
+            Logger.debug("Found \(result.count) runtime groups with devices")
             return result
         } catch {
-            throw SimulatorManagerError.parseError(String(describing: error))
+            Logger.error("Failed to parse devices JSON", error: error)
+            throw SimulatorManagerError.parseError(reason: "JSON decoding failed", underlyingError: error)
         }
     }
 

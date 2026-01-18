@@ -45,7 +45,7 @@ struct RepoInfo {
 enum RepoDetectorError: Error, CustomStringConvertible {
     case notInGitRepo
     case markerNotFound
-    case invalidMarkerFile(String)
+    case invalidMarkerFile(reason: String, underlyingError: Error?)
     case unexpectedProject(expected: String, found: String)
     case noValidRemote
 
@@ -62,8 +62,12 @@ enum RepoDetectorError: Error, CustomStringConvertible {
                 Expected \(Configuration.markerFileName) in project root.
                 Are you in the firefox-ios directory?
                 """
-        case .invalidMarkerFile(let reason):
-            return "Invalid \(Configuration.markerFileName): \(reason)"
+        case .invalidMarkerFile(let reason, let underlyingError):
+            var message = "Invalid \(Configuration.markerFileName): \(reason)"
+            if let error = underlyingError {
+                message += " (\(error.localizedDescription))"
+            }
+            return message
         case .unexpectedProject(let expected, let found):
             return """
                 Unexpected project in \(Configuration.markerFileName).
@@ -127,18 +131,22 @@ enum RepoDetector {
     }
 
     static func loadConfig(from markerPath: URL) throws -> NaryaConfig {
+        Logger.debug("Loading config from: \(markerPath.path)")
         let contents: String
         do {
             contents = try String(contentsOf: markerPath, encoding: .utf8)
         } catch {
-            throw RepoDetectorError.invalidMarkerFile("Could not read file: \(error.localizedDescription)")
+            Logger.error("Failed to read marker file", error: error)
+            throw RepoDetectorError.invalidMarkerFile(reason: "Could not read file", underlyingError: error)
         }
 
         do {
             let config = try YAMLDecoder().decode(NaryaConfig.self, from: contents)
+            Logger.debug("Loaded config for project: \(config.project)")
             return config
         } catch {
-            throw RepoDetectorError.invalidMarkerFile("Could not parse YAML: \(error.localizedDescription)")
+            Logger.error("Failed to parse YAML", error: error)
+            throw RepoDetectorError.invalidMarkerFile(reason: "Could not parse YAML", underlyingError: error)
         }
     }
 

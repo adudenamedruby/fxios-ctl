@@ -129,7 +129,8 @@ enum CommandHelpers {
             let defaultSim = try SimulatorManager.findDefaultSimulator()
             Herald.declare("Default: \(defaultSim.simulator.name) (iOS \(defaultSim.runtime.version))")
         } catch {
-            // Ignore errors finding default
+            Logger.debug("Could not determine default simulator: \(error)")
+            Herald.declare("Could not determine default simulator: \(error)", asError: true)
         }
 
         Herald.declare("")

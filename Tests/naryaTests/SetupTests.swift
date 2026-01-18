@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Foundation
 import Testing
 @testable import narya
 
@@ -19,9 +20,20 @@ struct SetupTests {
 struct ToolCheckerTests {
     @Test("ToolCheckerError.toolNotFound has correct description")
     func toolNotFoundDescription() {
-        let error = ToolCheckerError.toolNotFound("git")
+        let error = ToolCheckerError.toolNotFound(tool: "git", underlyingError: nil)
         #expect(error.description.contains("git"))
         #expect(error.description.contains("not available"))
+    }
+
+    @Test("ToolCheckerError includes underlying error in description")
+    func toolNotFoundWithUnderlyingError() {
+        struct TestError: Error, LocalizedError {
+            var errorDescription: String? { "Test underlying error" }
+        }
+        let underlying = TestError()
+        let error = ToolCheckerError.toolNotFound(tool: "node", underlyingError: underlying)
+        #expect(error.description.contains("node"))
+        #expect(error.description.contains("Test underlying error"))
     }
 
     @Test("requireGit succeeds when git is available")

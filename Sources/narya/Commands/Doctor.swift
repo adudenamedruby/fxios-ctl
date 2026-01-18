@@ -202,7 +202,7 @@ struct Doctor: ParsableCommand {
             process.waitUntilExit()
 
             if process.terminationStatus != 0 {
-                return .failure(ToolCheckerError.toolNotFound(tool))
+                return .failure(ToolCheckerError.toolNotFound(tool: tool, underlyingError: nil))
             }
 
             let data = pipe.fileHandleForReading.readDataToEndOfFile()

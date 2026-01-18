@@ -1,4 +1,4 @@
-# 💍 narya
+# 💍 `narya`
 
 A CLI tool for managing tasks in the [firefox-ios](https://github.com/mozilla-mobile/firefox-ios) repository.
 
@@ -26,7 +26,7 @@ To use this with the firefox-ios, repo, you will also need the dependencies from
 
 ## Installation
 
-narya is available through brew.
+`narya` is available through brew.
 
 ```bash
 brew tap adudenamedruby/narya
@@ -40,13 +40,14 @@ brew install narya
 
 ## Configuration
 
-narya uses a `.narya.yaml` file in the repository root for configuration and validation that it's in the correct repository.
+`narya` uses a `.narya.yaml` file in the repository root for configuration and validation that it's in the correct repository.
 
 ### Merged Configuration
 
-narya uses a merged configuration system where bundled defaults are combined with your project's `.narya.yaml`. Project config values take precedence over bundled defaults.
+`narya` uses a merged configuration system where bundled defaults are combined with your project's `.narya.yaml`. Project config values take precedence over bundled defaults.
 
 **Bundled defaults:**
+
 - `default_bootstrap`: `firefox`
 - `default_build_product`: `firefox`
 
@@ -87,6 +88,7 @@ Sources/narya/
 │   ├── Configuration.swift     # App constants (name, version, etc.)
 │   ├── DeviceShorthand.swift   # Simulator shorthand pattern matching (e.g., 17pro, air13)
 │   ├── Herald.swift            # Formatted output handling
+│   ├── Logger.swift            # Debug logging utility (enabled via --debug)
 │   ├── Products.swift          # Build product definitions (Firefox, Focus, Klar)
 │   ├── RepoDetector.swift      # Validates firefox-ios repository, loads .narya.yaml
 │   ├── ShellRunner.swift       # Shell command execution
@@ -135,7 +137,7 @@ See existing test files in `Tests/naryaTests/` for examples.
 
 ### Outputting Status from `narya`
 
-All narya output is handled by the `Herald`. To maintain clarity between `narya`'s output and the output of tools/commands it wraps, we have a standard way of presenting output.
+All `narya` output is handled by the `Herald`. To maintain clarity between `narya`'s output and the output of tools/commands it wraps, we have a standard way of presenting output.
 
 ```swift
 static func declare(
@@ -198,6 +200,26 @@ Herald.declare("Warning: deprecated API usage\nin file Foo.swift:42", asError: t
 Herald.declare("Compiling module C")
 Herald.declare("Build complete!", asConclusion: true)
 ```
+
+### Error Handling
+
+`narya` follows consistent error handling patterns to ensure errors are never silently swallowed and always provide useful context. For detailed guidelines, see [ERROR_HANDLING.md](ERROR_HANDLING.md).
+
+Key principles:
+
+- All custom errors include `underlyingError` when wrapping other errors
+- No silent `catch` blocks - errors are always reported via Herald or re-thrown
+- Debug logging available via `--debug` flag for troubleshooting
+
+### Debug Logging
+
+Pass the `--debug` flag to any command to enable detailed logging output:
+
+```bash
+narya --debug doctor
+```
+
+Debug output goes to stderr and includes timestamps, file locations, and underlying error details. This is useful for troubleshooting issues or understanding `narya`'s behavior.
 
 ## Currently Supported Commands
 

@@ -7,12 +7,16 @@ import Foundation
 // MARK: - Errors
 
 enum ToolCheckerError: Error, CustomStringConvertible {
-    case toolNotFound(String)
+    case toolNotFound(tool: String, underlyingError: Error?)
 
     var description: String {
         switch self {
-        case .toolNotFound(let tool):
-            return "\(tool) is not available. Please install \(tool) and try again."
+        case .toolNotFound(let tool, let underlyingError):
+            var message = "\(tool) is not available. Please install \(tool) and try again."
+            if let error = underlyingError {
+                message += " (\(error.localizedDescription))"
+            }
+            return message
         }
     }
 }
@@ -44,6 +48,7 @@ enum ToolChecker {
     }
 
     static func checkTool(_ tool: String, arguments: [String]) throws {
+        Logger.debug("Checking for tool: \(tool)")
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         process.arguments = [tool] + arguments
@@ -54,10 +59,15 @@ enum ToolChecker {
             try process.run()
             process.waitUntilExit()
             if process.terminationStatus != 0 {
-                throw ToolCheckerError.toolNotFound(tool)
+                Logger.debug("Tool \(tool) returned non-zero exit code: \(process.terminationStatus)")
+                throw ToolCheckerError.toolNotFound(tool: tool, underlyingError: nil)
             }
+            Logger.debug("Tool \(tool) is available")
+        } catch let error as ToolCheckerError {
+            throw error
         } catch {
-            throw ToolCheckerError.toolNotFound(tool)
+            Logger.error("Failed to check tool \(tool)", error: error)
+            throw ToolCheckerError.toolNotFound(tool: tool, underlyingError: error)
         }
     }
 }

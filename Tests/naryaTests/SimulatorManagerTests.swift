@@ -101,10 +101,17 @@ struct SimulatorManagerTests {
 
     // MARK: - Error Description Tests
 
+    /// A simple test error for testing error chaining.
+    struct TestUnderlyingError: Error, LocalizedError {
+        let message: String
+        var errorDescription: String? { message }
+    }
+
     @Test("SimulatorManagerError descriptions are correct")
     func errorDescriptions() {
-        let simctlError = SimulatorManagerError.simctlFailed("test reason")
+        let simctlError = SimulatorManagerError.simctlFailed(reason: "test reason", underlyingError: nil)
         #expect(simctlError.description.contains("simctl"))
+        #expect(simctlError.description.contains("test reason"))
 
         let noSimsError = SimulatorManagerError.noSimulatorsFound
         #expect(noSimsError.description.contains("No iOS simulators"))
@@ -112,17 +119,43 @@ struct SimulatorManagerTests {
         let notFoundError = SimulatorManagerError.simulatorNotFound("iPhone 99")
         #expect(notFoundError.description.contains("iPhone 99"))
 
-        let parseError = SimulatorManagerError.parseError("invalid json")
+        let parseError = SimulatorManagerError.parseError(reason: "invalid json", underlyingError: nil)
         #expect(parseError.description.contains("parse"))
+        #expect(parseError.description.contains("invalid json"))
 
-        let bootError = SimulatorManagerError.bootFailed("boot reason")
+        let bootError = SimulatorManagerError.bootFailed(reason: "boot reason", underlyingError: nil)
         #expect(bootError.description.contains("boot"))
 
-        let installError = SimulatorManagerError.installFailed("install reason")
+        let installError = SimulatorManagerError.installFailed(reason: "install reason", underlyingError: nil)
         #expect(installError.description.contains("install"))
 
-        let launchError = SimulatorManagerError.launchFailed("launch reason")
+        let launchError = SimulatorManagerError.launchFailed(reason: "launch reason", underlyingError: nil)
         #expect(launchError.description.contains("launch"))
+    }
+
+    @Test("SimulatorManagerError includes underlying error in description")
+    func errorChainingDescriptions() {
+        let underlying = TestUnderlyingError(message: "Connection refused")
+
+        let simctlError = SimulatorManagerError.simctlFailed(reason: "network issue", underlyingError: underlying)
+        #expect(simctlError.description.contains("network issue"))
+        #expect(simctlError.description.contains("Connection refused"))
+
+        let parseError = SimulatorManagerError.parseError(reason: "JSON decoding failed", underlyingError: underlying)
+        #expect(parseError.description.contains("JSON decoding failed"))
+        #expect(parseError.description.contains("Connection refused"))
+
+        let bootError = SimulatorManagerError.bootFailed(reason: "simctl boot failed", underlyingError: underlying)
+        #expect(bootError.description.contains("simctl boot failed"))
+        #expect(bootError.description.contains("Connection refused"))
+
+        let installError = SimulatorManagerError.installFailed(reason: "simctl install failed", underlyingError: underlying)
+        #expect(installError.description.contains("simctl install failed"))
+        #expect(installError.description.contains("Connection refused"))
+
+        let launchError = SimulatorManagerError.launchFailed(reason: "simctl launch failed", underlyingError: underlying)
+        #expect(launchError.description.contains("simctl launch failed"))
+        #expect(launchError.description.contains("Connection refused"))
     }
 
     // MARK: - Integration Tests (require Xcode/simctl)

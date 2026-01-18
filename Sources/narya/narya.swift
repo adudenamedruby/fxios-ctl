@@ -36,7 +36,14 @@ struct Narya: ParsableCommand {
     @Flag(name: .long, help: "Show tool information.")
     var about = false
 
+    @Flag(name: .long, help: "Enable debug logging output.")
+    var debug = false
+
     mutating func run() throws {
+        if debug {
+            Logger.isDebugEnabled = true
+        }
+
         if about {
             print(Configuration.aboutText)
             return
@@ -48,8 +55,20 @@ struct Narya: ParsableCommand {
 
     /// Custom main to handle errors through Herald
     static func main() {
+        // Check for --debug flag early in arguments
+        if CommandLine.arguments.contains("--debug") {
+            Logger.isDebugEnabled = true
+            Logger.debug("Debug mode enabled via --debug flag")
+        }
+
         do {
             var command = try parseAsRoot()
+
+            // Enable debug logging if flag was passed via parsed command
+            if let narya = command as? Narya, narya.debug {
+                Logger.isDebugEnabled = true
+            }
+
             do {
                 try command.run()
             } catch {
@@ -58,6 +77,9 @@ struct Narya: ParsableCommand {
                 if errorDescription.contains("ArgumentParser") || error is CleanExit {
                     Self.exit(withError: error)
                 }
+
+                // Log full error details in debug mode
+                Logger.error("Command failed", error: error)
 
                 // Runtime errors go through Herald
                 Herald.declare(String(describing: error), asError: true)

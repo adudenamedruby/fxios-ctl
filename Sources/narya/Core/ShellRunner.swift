@@ -35,17 +35,21 @@ enum ShellRunner {
         arguments: [String] = [],
         workingDirectory: URL? = nil
     ) throws -> Int32 {
+        Logger.debug("Executing: \(command) \(arguments.joined(separator: " "))")
+
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         process.arguments = [command] + arguments
 
         if let workingDirectory = workingDirectory {
             process.currentDirectoryURL = workingDirectory
+            Logger.debug("Working directory: \(workingDirectory.path)")
         }
 
         do {
             try process.run()
         } catch {
+            Logger.error("Failed to execute \(command)", error: error)
             throw ShellRunnerError.executionFailed(
                 command: command,
                 reason: error.localizedDescription
@@ -55,12 +59,14 @@ enum ShellRunner {
         process.waitUntilExit()
 
         if process.terminationStatus != 0 {
+            Logger.debug("\(command) exited with code \(process.terminationStatus)")
             throw ShellRunnerError.commandFailed(
                 command: command,
                 exitCode: process.terminationStatus
             )
         }
 
+        Logger.debug("\(command) completed successfully")
         return process.terminationStatus
     }
 
@@ -70,12 +76,15 @@ enum ShellRunner {
         arguments: [String] = [],
         workingDirectory: URL? = nil
     ) throws -> String {
+        Logger.debug("Executing (capture): \(command) \(arguments.joined(separator: " "))")
+
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         process.arguments = [command] + arguments
 
         if let workingDirectory = workingDirectory {
             process.currentDirectoryURL = workingDirectory
+            Logger.debug("Working directory: \(workingDirectory.path)")
         }
 
         let pipe = Pipe()
@@ -85,6 +94,7 @@ enum ShellRunner {
         do {
             try process.run()
         } catch {
+            Logger.error("Failed to execute \(command)", error: error)
             throw ShellRunnerError.executionFailed(
                 command: command,
                 reason: error.localizedDescription
@@ -94,6 +104,7 @@ enum ShellRunner {
         process.waitUntilExit()
 
         if process.terminationStatus != 0 {
+            Logger.debug("\(command) exited with code \(process.terminationStatus)")
             throw ShellRunnerError.commandFailed(
                 command: command,
                 exitCode: process.terminationStatus
@@ -101,6 +112,7 @@ enum ShellRunner {
         }
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        Logger.debug("\(command) completed, captured \(data.count) bytes")
         return String(data: data, encoding: .utf8) ?? ""
     }
 }
