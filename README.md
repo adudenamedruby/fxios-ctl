@@ -111,30 +111,49 @@ See existing test files in `Tests/naryaTests/` for examples.
 
 ### Outputting Status from `narya`
 
-All narya output is handled by the `Herald`. The maintain clarity between `narya`'s output and the output of tools/commands it wraps, we have a standard way of presenting output. The beginning of every action block from `narya` is preceeded by a 💍 and indented afterwards. To maintain this format, always `reset()` the `Herald` before beginning a new action.
+All narya output is handled by the `Herald`. The maintain clarity between `narya`'s output and the output of tools/commands it wraps, we have a standard way of presenting output. The beginning of every action block from `narya` is preceeded by a 💍 and indented afterwards. To adhere to the preferred format, here's the results you can expect, from the singular interface of the herald
 
-| Function  | Meaning                           |
-| --------- | --------------------------------- |
-| reset()   | Begin a new block to output.      |
-| declare() | Used to output a regular block    |
-| warn()    | Used to output errors or warnings |
+```swift
+      static func declare(
+          _ message: String,
+          asError: Bool = false,
+          asConclusion: Bool = false
+      )
+  }
+```
+
+Prefix Logic:
+| State | `asError` | `asConclusion` | Output Prefix | Comments |
+| ----------- | ----------- | ------------ | ------------ | -------- |
+| First line | false | false | 💍 | |
+| First line | true | false | 💍 💥 | |
+| First line | false | true | 💍 | `asConclusion` shouldn't be used when starting a report |
+| First line | true | true | 💍 💥 | `asConclusion` shouldn't be used when starting a report |
+| Mid-command | false | false | ▒ | |
+| Mid-command | true | false | ▒ 💥 | |
+| End of command | false | true | 💍 | |
+| End of command | true | true | 💍 💥 | |
+Multi-line handling:
+
+- First line of message: uses computed prefix from above
+- Subsequent lines: always ▒ ▒ (sub-continuation)
 
 ## Currently Supported Commands
 
-| Command           | Description                                               |
-| ----------------- | --------------------------------------------------------- |
-| `narya bootstrap` | Bootstrap the repository for Firefox or Focus development |
-| `narya build`     | Build Firefox, Focus, or Klar for development             |
-| `narya clean`     | Clean up cached or generated files                        |
-| `narya doctor`    | Check development environment for required tools          |
+| Command           | Description                                                  |
+| ----------------- | ------------------------------------------------------------ |
+| `narya bootstrap` | Bootstrap the repository for Firefox or Focus development    |
+| `narya build`     | Build Firefox, Focus, or Klar for development                |
+| `narya clean`     | Clean up cached or generated files                           |
+| `narya doctor`    | Check development environment for required tools             |
 | `narya l10n`      | Localization tools for managing XLIFF files and translations |
-| `narya lint`      | Run SwiftLint on the codebase                             |
-| `narya nimbus`    | Manage Nimbus feature configuration files                 |
-| `narya run`       | Build and launch in the iOS Simulator                     |
-| `narya setup`     | Clone and bootstrap the firefox-ios repository            |
-| `narya telemetry` | Update telemetry configuration files                      |
-| `narya test`      | Run tests for Firefox, Focus, or Klar                     |
-| `narya version`   | Display or update version numbers across the repository   |
+| `narya lint`      | Run SwiftLint on the codebase                                |
+| `narya nimbus`    | Manage Nimbus feature configuration files                    |
+| `narya run`       | Build and launch in the iOS Simulator                        |
+| `narya setup`     | Clone and bootstrap the firefox-ios repository               |
+| `narya telemetry` | Update telemetry configuration files                         |
+| `narya test`      | Run tests for Firefox, Focus, or Klar                        |
+| `narya version`   | Display or update version numbers across the repository      |
 
 #### `bootstrap`
 
