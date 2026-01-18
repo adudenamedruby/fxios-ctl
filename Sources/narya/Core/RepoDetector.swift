@@ -99,6 +99,22 @@ enum RepoDetector {
     static let expectedProject = "firefox-ios"
     static let expectedRemoteIdentifier = "mozilla-mobile/firefox-ios"
 
+    /// Checks if the current directory is within a firefox-ios repository
+    /// without emitting warnings or errors.
+    /// - Returns: true if in a valid firefox-ios repo, false otherwise
+    static func isInFirefoxIOSRepo() -> Bool {
+        guard let repoRoot = findGitRoot() else { return false }
+        let markerPath = repoRoot.appendingPathComponent(Configuration.markerFileName)
+        guard FileManager.default.fileExists(atPath: markerPath.path) else { return false }
+
+        do {
+            let config = try loadConfig(from: markerPath)
+            return config.project == expectedProject
+        } catch {
+            return false
+        }
+    }
+
     /// Finds the git repository root using `git rev-parse --show-toplevel`.
     /// Returns nil if not inside a git repository.
     static func findGitRoot() -> URL? {

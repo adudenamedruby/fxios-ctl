@@ -17,6 +17,13 @@ struct Setup: ParsableCommand {
     var location: String?
 
     mutating func run() throws {
+        // Check if we're already in a firefox-ios repository
+        if RepoDetector.isInFirefoxIOSRepo() {
+            Herald.declare("You are already inside a firefox-ios repository.", isNewCommand: true)
+            Herald.declare("If you want to re-run the setup steps, use: narya bootstrap --all")
+            return
+        }
+
         try ToolChecker.requireGit()
         try ToolChecker.requireNode()
         try ToolChecker.requireNpm()
