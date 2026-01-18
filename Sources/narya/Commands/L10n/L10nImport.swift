@@ -20,6 +20,10 @@ extension L10n {
                 Imports translated XLIFF files from the l10n repository into
                 the specified Xcode project.
 
+                You must specify either --product or --project-path:
+                - Use --product firefox or --product focus for preset configurations
+                - Use --project-path for custom project locations
+
                 The import process:
                 1. Creates .xcloc bundles from XLIFF files
                 2. Maps locale codes from Pontoon to Xcode format
@@ -29,8 +33,11 @@ extension L10n {
                 """
         )
 
-        @Option(name: .long, help: "Path to the Xcode project (.xcodeproj).")
-        var projectPath: String
+        @Option(name: .long, help: "Product preset (firefox or focus). Required unless --project-path is specified.")
+        var product: L10nProduct?
+
+        @Option(name: .long, help: "Path to the Xcode project (.xcodeproj). Required unless --product is specified.")
+        var projectPath: String?
 
         @Option(name: .customLong("l10n-project-path"), help: "Path to the l10n repository.")
         var l10nProjectPath: String
@@ -38,20 +45,48 @@ extension L10n {
         @Option(name: .customLong("locale"), help: "Single locale to import (discovers all if not specified).")
         var localeCode: String?
 
-        @Option(name: .customLong("xliff-name"), help: "XLIFF filename.")
-        var xliffName: String = "firefox-ios.xliff"
+        @Option(name: .customLong("xliff-name"), help: "XLIFF filename (default from product).")
+        var xliffName: String?
 
-        @Option(name: .customLong("development-region"), help: "Development region for xcloc manifest.")
-        var developmentRegion: String = "en-US"
+        @Option(name: .customLong("development-region"), help: "Development region for xcloc manifest (default from product).")
+        var developmentRegion: String?
 
-        @Option(name: .customLong("project-name"), help: "Project name for xcloc manifest.")
-        var projectName: String = "Client.xcodeproj"
+        @Option(name: .customLong("project-name"), help: "Project name for xcloc manifest (default from product).")
+        var projectName: String?
 
-        @Flag(name: .customLong("skip-widget-kit"), help: "Exclude WidgetKit strings from required translations.")
-        var skipWidgetKit: Bool = false
+        @Flag(name: .customLong("skip-widget-kit"), inversion: .prefixedNo, help: "Exclude WidgetKit strings from required translations (default from product).")
+        var skipWidgetKit: Bool?
+
+        mutating func validate() throws {
+            if product != nil && projectPath != nil {
+                throw ValidationError("Cannot specify both --product and --project-path")
+            }
+            if product == nil && projectPath == nil {
+                throw ValidationError("Must specify either --product or --project-path")
+            }
+        }
 
         mutating func run() throws {
             try ToolChecker.requireXcodebuild()
+
+            let repo = try RepoDetector.requireValidRepo()
+
+            // Resolve project path (CLI or product path from repo root)
+            let resolvedProjectPath: String
+            if let cliPath = projectPath {
+                resolvedProjectPath = cliPath
+            } else if let prod = product {
+                resolvedProjectPath = repo.root.appendingPathComponent(prod.projectPath).path
+            } else {
+                // Should never reach here due to validate()
+                throw ValidationError("Must specify either --product or --project-path")
+            }
+
+            // Resolve other values (CLI > product default > hardcoded fallback)
+            let resolvedXliffName = xliffName ?? product?.xliffName ?? "firefox-ios.xliff"
+            let resolvedDevelopmentRegion = developmentRegion ?? product?.developmentRegion ?? "en-US"
+            let resolvedProjectName = projectName ?? product?.projectName ?? "Client.xcodeproj"
+            let resolvedSkipWidgetKit = skipWidgetKit ?? product?.skipWidgetKit ?? false
 
             let locales: [String]
             if let singleLocale = localeCode {
@@ -60,16 +95,16 @@ extension L10n {
                 locales = try L10nExportTask.discoverLocales(at: l10nProjectPath)
             }
 
-            Herald.declare("Importing \(locales.count) locale(s) into \(projectPath)...", isNewCommand: true)
+            Herald.declare("Importing \(locales.count) locale(s) into \(resolvedProjectPath)...", isNewCommand: true)
 
             try L10nImportTask(
-                xcodeProjPath: projectPath,
+                xcodeProjPath: resolvedProjectPath,
                 l10nRepoPath: l10nProjectPath,
                 locales: locales,
-                xliffName: xliffName,
-                developmentRegion: developmentRegion,
-                projectName: projectName,
-                skipWidgetKit: skipWidgetKit
+                xliffName: resolvedXliffName,
+                developmentRegion: resolvedDevelopmentRegion,
+                projectName: resolvedProjectName,
+                skipWidgetKit: resolvedSkipWidgetKit
             ).run()
 
             Herald.declare("Import completed successfully!", asConclusion: true)

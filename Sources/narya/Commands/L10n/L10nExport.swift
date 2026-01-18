@@ -20,6 +20,10 @@ extension L10n {
                 Extracts localizable strings from the specified Xcode project and writes
                 them to the l10n repository as XLIFF files.
 
+                You must specify either --product or --project-path:
+                - Use --product firefox or --product focus for preset configurations
+                - Use --project-path for custom project locations
+
                 The export process:
                 1. Runs xcodebuild -exportLocalizations
                 2. Filters excluded translation keys (CFBundleName, etc.)
@@ -29,8 +33,11 @@ extension L10n {
                 """
         )
 
-        @Option(name: .long, help: "Path to the Xcode project (.xcodeproj).")
-        var projectPath: String
+        @Option(name: .long, help: "Product preset (firefox or focus). Required unless --project-path is specified.")
+        var product: L10nProduct?
+
+        @Option(name: .long, help: "Path to the Xcode project (.xcodeproj). Required unless --product is specified.")
+        var projectPath: String?
 
         @Option(name: .customLong("l10n-project-path"), help: "Path to the l10n repository.")
         var l10nProjectPath: String
@@ -38,17 +45,43 @@ extension L10n {
         @Option(name: .customLong("locale"), help: "Single locale to export (discovers all if not specified).")
         var localeCode: String?
 
-        @Option(name: .customLong("xliff-name"), help: "XLIFF filename.")
-        var xliffName: String = "firefox-ios.xliff"
+        @Option(name: .customLong("xliff-name"), help: "XLIFF filename (default from product).")
+        var xliffName: String?
 
-        @Option(name: .customLong("export-base-path"), help: "Base path for export temp files.")
-        var exportBasePath: String = "/tmp/ios-localization"
+        @Option(name: .customLong("export-base-path"), help: "Base path for export temp files (default from product).")
+        var exportBasePath: String?
 
         @Flag(name: .customLong("create-templates"), help: "Create template XLIFF files after export.")
         var createTemplates: Bool = false
 
+        mutating func validate() throws {
+            if product != nil && projectPath != nil {
+                throw ValidationError("Cannot specify both --product and --project-path")
+            }
+            if product == nil && projectPath == nil {
+                throw ValidationError("Must specify either --product or --project-path")
+            }
+        }
+
         mutating func run() throws {
             try ToolChecker.requireXcodebuild()
+
+            let repo = try RepoDetector.requireValidRepo()
+
+            // Resolve project path (CLI or product path from repo root)
+            let resolvedProjectPath: String
+            if let cliPath = projectPath {
+                resolvedProjectPath = cliPath
+            } else if let prod = product {
+                resolvedProjectPath = repo.root.appendingPathComponent(prod.projectPath).path
+            } else {
+                // Should never reach here due to validate()
+                throw ValidationError("Must specify either --product or --project-path")
+            }
+
+            // Resolve other values (CLI > product default > hardcoded fallback)
+            let resolvedXliffName = xliffName ?? product?.xliffName ?? "firefox-ios.xliff"
+            let resolvedExportBasePath = exportBasePath ?? product?.exportBasePath ?? "/tmp/ios-localization"
 
             let locales: [String]
             if let singleLocale = localeCode {
@@ -57,19 +90,19 @@ extension L10n {
                 locales = try L10nExportTask.discoverLocales(at: l10nProjectPath)
             }
 
-            Herald.declare("Exporting \(locales.count) locale(s) from \(projectPath)...", isNewCommand: true)
+            Herald.declare("Exporting \(locales.count) locale(s) from \(resolvedProjectPath)...", isNewCommand: true)
 
             try L10nExportTask(
-                xcodeProjPath: projectPath,
+                xcodeProjPath: resolvedProjectPath,
                 l10nRepoPath: l10nProjectPath,
                 locales: locales,
-                xliffName: xliffName,
-                exportBasePath: exportBasePath
+                xliffName: resolvedXliffName,
+                exportBasePath: resolvedExportBasePath
             ).run()
 
             if createTemplates {
                 Herald.declare("Creating template XLIFF files...")
-                try L10nTemplatesTask(l10nRepoPath: l10nProjectPath, xliffName: xliffName).run()
+                try L10nTemplatesTask(l10nRepoPath: l10nProjectPath, xliffName: resolvedXliffName).run()
             }
 
             Herald.declare("Export completed successfully!", asConclusion: true)

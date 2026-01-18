@@ -57,53 +57,56 @@ struct L10nCommandTests {
     }
 
     // MARK: - Default Values Tests
+    //
+    // Note: Values like xliffName, developmentRegion, projectName, exportBasePath, and skipWidgetKit
+    // are now optional at parse time and resolved at runtime from product presets or config defaults.
 
     @Suite("Default Values")
     struct DefaultValuesTests {
 
-        @Test("Default XLIFF name is firefox-ios.xliff")
-        func defaultXliffName() throws {
+        @Test("XLIFF name is nil by default (resolved at runtime from product)")
+        func defaultXliffNameIsNil() throws {
             let exportCommand = try L10n.Export.parse([
                 "--project-path", "/test",
                 "--l10n-project-path", "/test"
             ])
-            #expect(exportCommand.xliffName == "firefox-ios.xliff")
+            #expect(exportCommand.xliffName == nil)
         }
 
-        @Test("Default development region is en-US")
-        func defaultDevelopmentRegion() throws {
+        @Test("Development region is nil by default (resolved at runtime from product)")
+        func defaultDevelopmentRegionIsNil() throws {
             let importCommand = try L10n.Import.parse([
                 "--project-path", "/test",
                 "--l10n-project-path", "/test"
             ])
-            #expect(importCommand.developmentRegion == "en-US")
+            #expect(importCommand.developmentRegion == nil)
         }
 
-        @Test("Default project name is Client.xcodeproj")
-        func defaultProjectName() throws {
+        @Test("Project name is nil by default (resolved at runtime from product)")
+        func defaultProjectNameIsNil() throws {
             let importCommand = try L10n.Import.parse([
                 "--project-path", "/test",
                 "--l10n-project-path", "/test"
             ])
-            #expect(importCommand.projectName == "Client.xcodeproj")
+            #expect(importCommand.projectName == nil)
         }
 
-        @Test("Default export base path is /tmp/ios-localization")
-        func defaultExportBasePath() throws {
+        @Test("Export base path is nil by default (resolved at runtime from product)")
+        func defaultExportBasePathIsNil() throws {
             let exportCommand = try L10n.Export.parse([
                 "--project-path", "/test",
                 "--l10n-project-path", "/test"
             ])
-            #expect(exportCommand.exportBasePath == "/tmp/ios-localization")
+            #expect(exportCommand.exportBasePath == nil)
         }
 
-        @Test("Default skipWidgetKit is false")
-        func defaultSkipWidgetKit() throws {
+        @Test("skipWidgetKit is nil by default (resolved at runtime from product)")
+        func defaultSkipWidgetKitIsNil() throws {
             let importCommand = try L10n.Import.parse([
                 "--project-path", "/test",
                 "--l10n-project-path", "/test"
             ])
-            #expect(importCommand.skipWidgetKit == false)
+            #expect(importCommand.skipWidgetKit == nil)
         }
 
         @Test("Default createTemplates is false")

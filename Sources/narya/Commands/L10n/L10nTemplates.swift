@@ -17,6 +17,9 @@ extension L10n {
             discussion: """
                 Creates template XLIFF files in the l10n repository's templates directory.
 
+                Use --product to select Firefox or Focus presets for the XLIFF filename,
+                or specify --xliff-name directly. Defaults to firefox-ios.xliff.
+
                 Templates are generated from the en-US XLIFF file with:
                 - All target-language attributes removed
                 - All <target> elements removed
@@ -26,16 +29,21 @@ extension L10n {
                 """
         )
 
+        @Option(name: .long, help: "Product preset (firefox or focus) for XLIFF filename.")
+        var product: L10nProduct?
+
         @Option(name: .customLong("l10n-project-path"), help: "Path to the l10n repository.")
         var l10nProjectPath: String
 
-        @Option(name: .customLong("xliff-name"), help: "XLIFF filename.")
-        var xliffName: String = "firefox-ios.xliff"
+        @Option(name: .customLong("xliff-name"), help: "XLIFF filename (default: firefox-ios.xliff).")
+        var xliffName: String?
 
         mutating func run() throws {
+            let resolvedXliffName = xliffName ?? product?.xliffName ?? "firefox-ios.xliff"
+
             Herald.declare("Creating template XLIFF files...", isNewCommand: true)
 
-            try L10nTemplatesTask(l10nRepoPath: l10nProjectPath, xliffName: xliffName).run()
+            try L10nTemplatesTask(l10nRepoPath: l10nProjectPath, xliffName: resolvedXliffName).run()
 
             Herald.declare("Templates created successfully!", asConclusion: true)
         }

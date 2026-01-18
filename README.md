@@ -33,50 +33,34 @@ brew tap adudenamedruby/narya
 brew install narya
 ```
 
-**NOTE:** installing `narya` will also install several dependencies through `brew`, that are used for functionality:
+**NOTE:** installing `narya` will also install several dependencies through `brew`, that are used for firefox-ios:
 
 - [swiftlint](https://github.com/realm/SwiftLint)
-- [danger](https://github.com/danger/swift)
+- [node](https://nodejs.org/en)
 
 ## Configuration
 
 `narya` uses a `.narya.yaml` file in the repository root for configuration and validation that it's in the correct repository.
 
-### Merged Configuration
+For the complete configuration reference, see [CONFIGURATION.md](CONFIGURATION.md).
 
-`narya` uses a merged configuration system where bundled defaults are combined with your project's `.narya.yaml`. Project config values take precedence over bundled defaults.
+### Quick Start
 
-**Bundled defaults:**
-
-- `default_bootstrap`: `firefox`
-- `default_build_product`: `firefox`
-
-This means you only need to specify values in `.narya.yaml` when you want to override the defaults.
-
-### Configuration File
-
-```yaml
-# Required: identifies this as a narya-compatible repository
-project: firefox-ios
-
-# Optional: default product for bootstrap command (firefox or focus)
-# If not specified, uses bundled default: firefox
-default_bootstrap: firefox
-
-# Optional: default product for build/run commands (firefox, focus, or klar)
-# If not specified, uses bundled default: firefox
-default_build_product: firefox
-```
-
-### Minimal Configuration
-
-Since defaults are bundled, a minimal `.narya.yaml` only needs the required `project` field:
+A minimal `.narya.yaml` only needs the required `project` field:
 
 ```yaml
 project: firefox-ios
 ```
 
-This will use `firefox` as the default for both bootstrap and build commands.
+This uses bundled defaults (`firefox`) for bootstrap and build commands.
+
+### Configuration with Overrides
+
+```yaml
+project: firefox-ios
+default_bootstrap: focus
+default_build_product: focus
+```
 
 ## Architecture
 
@@ -271,6 +255,19 @@ Localization tools for managing XLIFF files and translations between Xcode proje
 - `export` - Extract localizable strings from Xcode to XLIFF files in the l10n repository
 - `import` - Import translated XLIFF files back into the Xcode project
 - `templates` - Create blank template XLIFF files for translators
+
+For `export` and `import`, you must specify either `--product` or `--project-path`:
+
+```bash
+# Export Firefox strings (using product preset)
+narya l10n export --product firefox --l10n-project-path /path/to/l10n-repo
+
+# Import Focus translations (using product preset)
+narya l10n import --product focus --l10n-project-path /path/to/l10n-repo
+
+# Export with explicit project path
+narya l10n export --project-path ./Client.xcodeproj --l10n-project-path /path/to/l10n-repo
+```
 
 These commands handle locale code mapping between Xcode and Pontoon formats, filtering of non-translatable keys, required translation validation, and comment overrides from `l10n_comments.txt`.
 
