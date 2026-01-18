@@ -7,9 +7,10 @@ import Foundation
 
 /// Handles modifications to NimbusFlaggableFeature.swift
 enum NimbusFlaggableFeatureEditor {
-    struct ValidationResult {
-        let isInDebugKey: Bool
-        let isUserToggleable: Bool
+    struct RemovalResult {
+        let enumCaseRemoved: Bool
+        let debugKeyRemoved: Bool?  // nil = wasn't present, true = removed, false = failed to remove
+        let featureKeyRemoved: Bool
     }
 
     static func addFeature(
@@ -38,51 +39,57 @@ enum NimbusFlaggableFeatureEditor {
         try content.write(to: filePath, atomically: true, encoding: .utf8)
     }
 
-    static func validateRemoval(name: String, filePath: URL) throws -> ValidationResult {
-        let content = try String(contentsOf: filePath, encoding: .utf8)
-
-        // Check enum case exists
-        let enumPattern = "case \(name)\\b"
-        guard content.range(of: enumPattern, options: .regularExpression) != nil else {
-            throw ValidationError("Feature '\(name)' not found in NimbusFeatureFlagID enum")
-        }
-
-        // Check if in debugKey
-        let debugKeyPattern = "\\.\(name)[,:]"
-        let isInDebugKey = content.range(of: debugKeyPattern, options: .regularExpression) != nil &&
-            content.contains("debugKey")
-
-        // Check if user toggleable (has its own case in featureKey with fatalError or specific return)
-        let userToggleablePattern = "case \\.\(name):\\s*\n\\s*(return FlagKeys\\.|fatalError)"
-        let isUserToggleable = content.range(of: userToggleablePattern, options: .regularExpression) != nil
-
-        return ValidationResult(isInDebugKey: isInDebugKey, isUserToggleable: isUserToggleable)
-    }
-
-    static func removeFeature(
-        name: String,
-        isInDebugKey: Bool,
-        isUserToggleable: Bool,
-        filePath: URL
-    ) throws {
+    static func removeFeature(name: String, filePath: URL) throws -> RemovalResult {
         var content = try String(contentsOf: filePath, encoding: .utf8)
+        let originalContent = content
 
         // 1. Remove enum case
-        content = try removeEnumCase(name: name, from: content)
+        let (contentAfterEnum, enumRemoved) = removeEnumCase(name: name, from: content)
+        content = contentAfterEnum
 
-        // 2. Remove from debugKey if present
-        if isInDebugKey {
-            content = try removeFromDebugKey(name: name, from: content)
+        // 2. Check if in debugKey and try to remove
+        let wasInDebugKey = isInDebugKey(name: name, content: originalContent)
+        var debugKeyRemoved: Bool? = nil
+        if wasInDebugKey {
+            let (contentAfterDebug, removed) = removeFromDebugKey(name: name, from: content)
+            content = contentAfterDebug
+            debugKeyRemoved = removed
         }
 
-        // 3. Remove from featureKey
-        if isUserToggleable {
-            content = try removeUserToggleableCase(name: name, from: content)
+        // 3. Determine if user-toggleable and remove from featureKey
+        let userToggleable = isUserToggleable(name: name, content: originalContent)
+        let featureKeyRemoved: Bool
+        if userToggleable {
+            let (contentAfterFeature, removed) = removeUserToggleableCase(name: name, from: content)
+            content = contentAfterFeature
+            featureKeyRemoved = removed
         } else {
-            content = try removeFromDefaultCase(name: name, from: content)
+            let (contentAfterFeature, removed) = removeFromDefaultCase(name: name, from: content)
+            content = contentAfterFeature
+            featureKeyRemoved = removed
         }
 
         try content.write(to: filePath, atomically: true, encoding: .utf8)
+
+        return RemovalResult(
+            enumCaseRemoved: enumRemoved,
+            debugKeyRemoved: debugKeyRemoved,
+            featureKeyRemoved: featureKeyRemoved
+        )
+    }
+
+    // MARK: - Detection Helpers
+
+    private static func isInDebugKey(name: String, content: String) -> Bool {
+        let debugKeyPattern = "\\.\(name)[,:]"
+        return content.range(of: debugKeyPattern, options: .regularExpression) != nil &&
+            content.contains("var debugKey: String?")
+    }
+
+    private static func isUserToggleable(name: String, content: String) -> Bool {
+        // User-toggleable features have their own case in featureKey with fatalError or specific return
+        let userToggleablePattern = "case \\.\(name):\\s*\n\\s*(return FlagKeys\\.|fatalError)"
+        return content.range(of: userToggleablePattern, options: .regularExpression) != nil
     }
 
     // MARK: - Enum Case Operations
@@ -131,14 +138,15 @@ enum NimbusFlaggableFeatureEditor {
         return lines.joined(separator: "\n")
     }
 
-    private static func removeEnumCase(name: String, from content: String) throws -> String {
+    private static func removeEnumCase(name: String, from content: String) -> (String, Bool) {
         var lines = content.components(separatedBy: "\n")
 
         if let index = lines.firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "case \(name)" }) {
             lines.remove(at: index)
+            return (lines.joined(separator: "\n"), true)
         }
 
-        return lines.joined(separator: "\n")
+        return (content, false)
     }
 
     private static func extractCaseName(from line: String) -> String {
@@ -223,7 +231,7 @@ enum NimbusFlaggableFeatureEditor {
         return lines.joined(separator: "\n")
     }
 
-    private static func removeFromDebugKey(name: String, from content: String) throws -> String {
+    private static func removeFromDebugKey(name: String, from content: String) -> (String, Bool) {
         var lines = content.components(separatedBy: "\n")
 
         // Find and remove the .featureName line from debugKey section
@@ -250,7 +258,7 @@ enum NimbusFlaggableFeatureEditor {
                         }
                     }
                     lines.remove(at: index)
-                    break
+                    return (lines.joined(separator: "\n"), true)
                 }
 
                 if trimmed == "default:" {
@@ -259,7 +267,7 @@ enum NimbusFlaggableFeatureEditor {
             }
         }
 
-        return lines.joined(separator: "\n")
+        return (content, false)
     }
 
     // MARK: - featureKey Operations
@@ -299,7 +307,7 @@ enum NimbusFlaggableFeatureEditor {
         return lines.joined(separator: "\n")
     }
 
-    private static func removeUserToggleableCase(name: String, from content: String) throws -> String {
+    private static func removeUserToggleableCase(name: String, from content: String) -> (String, Bool) {
         var lines = content.components(separatedBy: "\n")
 
         // Find and remove the case block
@@ -323,9 +331,10 @@ enum NimbusFlaggableFeatureEditor {
 
         if let start = removeStart, let end = removeEnd {
             lines.removeSubrange(start..<end)
+            return (lines.joined(separator: "\n"), true)
         }
 
-        return lines.joined(separator: "\n")
+        return (content, false)
     }
 
     private static func addToDefaultCase(name: String, to content: String) throws -> String {
@@ -403,7 +412,7 @@ enum NimbusFlaggableFeatureEditor {
         return lines.joined(separator: "\n")
     }
 
-    private static func removeFromDefaultCase(name: String, from content: String) throws -> String {
+    private static func removeFromDefaultCase(name: String, from content: String) -> (String, Bool) {
         var lines = content.components(separatedBy: "\n")
 
         var inFeatureKey = false
@@ -436,7 +445,7 @@ enum NimbusFlaggableFeatureEditor {
                             }
                         }
                         lines.remove(at: index)
-                        break
+                        return (lines.joined(separator: "\n"), true)
                     }
 
                     if trimmed.hasPrefix("return nil") {
@@ -446,6 +455,6 @@ enum NimbusFlaggableFeatureEditor {
             }
         }
 
-        return lines.joined(separator: "\n")
+        return (content, false)
     }
 }

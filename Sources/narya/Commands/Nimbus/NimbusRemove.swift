@@ -12,8 +12,8 @@ extension Nimbus {
             discussion: """
                 Removes a feature from all locations where it was added.
 
-                The command will validate that all patterns match exactly before removing anything.
-                If any validation fails, no changes will be made.
+                Each removal step reports success or failure. If a step fails,
+                you may need to manually remove the feature from that location.
                 """
         )
 
@@ -29,6 +29,7 @@ extension Nimbus {
             let cleanName = NimbusHelpers.cleanFeatureName(featureName)
 
             Herald.declare("Removing feature '\(cleanName)'...")
+            Herald.declare("")
 
             // Collect all file paths
             let yamlFileName = "\(cleanName)Feature.yaml"
@@ -39,60 +40,151 @@ extension Nimbus {
             let flagLayerPath = repo.root.appendingPathComponent(NimbusConstants.nimbusFeatureFlagLayerPath)
             let debugVCPath = repo.root.appendingPathComponent(NimbusConstants.featureFlagsDebugViewControllerPath)
 
-            // Phase 1: Validate all removals are possible
-            Herald.declare("Validating removal...")
+            var hasFailures = false
 
-            // Check YAML file exists
-            guard FileManager.default.fileExists(atPath: yamlFilePath.path) else {
-                throw ValidationError("Feature YAML file not found: \(yamlFilePath.path)")
+            // 1. Remove YAML file
+            Herald.declare("Removing \(yamlFileName)...")
+            if FileManager.default.fileExists(atPath: yamlFilePath.path) {
+                do {
+                    try FileManager.default.removeItem(at: yamlFilePath)
+                    reportSuccess("Removed YAML file")
+                } catch {
+                    reportFailure("Failed to remove YAML file: \(error.localizedDescription)")
+                    hasFailures = true
+                }
+            } else {
+                reportSkipped("YAML file not found (already removed?)")
             }
 
-            // Validate NimbusFlaggableFeature.swift
-            let flaggableValidation = try NimbusFlaggableFeatureEditor.validateRemoval(
-                name: cleanName,
-                filePath: flaggableFeaturePath
-            )
-
-            // Validate NimbusFeatureFlagLayer.swift
-            try NimbusFeatureFlagLayerEditor.validateRemoval(name: cleanName, filePath: flagLayerPath)
-
-            // Check if feature is in debug settings
-            let isInDebugVC = try FeatureFlagsDebugViewControllerEditor.featureExists(
-                name: cleanName,
-                filePath: debugVCPath
-            )
-
-            // Phase 2: Perform all removals
-            Herald.declare("Removing from all locations...")
-
-            // Remove YAML file
-            Herald.declare("Removing feature file: \(NimbusConstants.nimbusFeaturesPath)/\(yamlFileName)")
-            try FileManager.default.removeItem(at: yamlFilePath)
-
-            // Update nimbus.fml.yaml
+            // 2. Update nimbus.fml.yaml
             Herald.declare("Updating nimbus.fml.yaml...")
-            try NimbusHelpers.updateNimbusFml(repoRoot: repo.root)
-
-            // Remove from NimbusFlaggableFeature.swift
-            Herald.declare("Updating NimbusFlaggableFeature.swift...")
-            try NimbusFlaggableFeatureEditor.removeFeature(
-                name: cleanName,
-                isInDebugKey: flaggableValidation.isInDebugKey,
-                isUserToggleable: flaggableValidation.isUserToggleable,
-                filePath: flaggableFeaturePath
-            )
-
-            // Remove from NimbusFeatureFlagLayer.swift
-            Herald.declare("Updating NimbusFeatureFlagLayer.swift...")
-            try NimbusFeatureFlagLayerEditor.removeFeature(name: cleanName, filePath: flagLayerPath)
-
-            // Remove from FeatureFlagsDebugViewController.swift if present
-            if isInDebugVC {
-                Herald.declare("Updating FeatureFlagsDebugViewController.swift...")
-                try FeatureFlagsDebugViewControllerEditor.removeFeature(name: cleanName, filePath: debugVCPath)
+            do {
+                try NimbusHelpers.updateNimbusFml(repoRoot: repo.root)
+                reportSuccess("Updated nimbus.fml.yaml")
+            } catch {
+                reportFailure("Failed to update nimbus.fml.yaml: \(error.localizedDescription)")
+                hasFailures = true
             }
 
-            Herald.declare("Successfully removed feature '\(cleanName)'")
+            // 3. Remove from NimbusFlaggableFeature.swift
+            Herald.declare("Updating NimbusFlaggableFeature.swift...")
+            if FileManager.default.fileExists(atPath: flaggableFeaturePath.path) {
+                do {
+                    let result = try NimbusFlaggableFeatureEditor.removeFeature(
+                        name: cleanName,
+                        filePath: flaggableFeaturePath
+                    )
+
+                    if result.enumCaseRemoved {
+                        reportSuccess("Removed enum case")
+                    } else {
+                        reportFailure("Could not find enum case 'case \(cleanName)'")
+                        hasFailures = true
+                    }
+
+                    if let debugKeyRemoved = result.debugKeyRemoved {
+                        if debugKeyRemoved {
+                            reportSuccess("Removed from debugKey")
+                        } else {
+                            reportFailure("Found in debugKey but could not remove")
+                            hasFailures = true
+                        }
+                    }
+
+                    if result.featureKeyRemoved {
+                        reportSuccess("Removed from featureKey")
+                    } else {
+                        reportFailure("Could not find/remove from featureKey")
+                        hasFailures = true
+                    }
+                } catch {
+                    reportFailure("Failed to process file: \(error.localizedDescription)")
+                    hasFailures = true
+                }
+            } else {
+                reportFailure("File not found")
+                hasFailures = true
+            }
+
+            // 4. Remove from NimbusFeatureFlagLayer.swift
+            Herald.declare("Updating NimbusFeatureFlagLayer.swift...")
+            if FileManager.default.fileExists(atPath: flagLayerPath.path) {
+                do {
+                    let result = try NimbusFeatureFlagLayerEditor.removeFeature(
+                        name: cleanName,
+                        filePath: flagLayerPath
+                    )
+
+                    if result.switchCaseRemoved {
+                        reportSuccess("Removed switch case")
+                    } else {
+                        reportFailure("Could not find switch case 'case .\(cleanName):'")
+                        hasFailures = true
+                    }
+
+                    let funcName = "check\(StringUtils.capitalizeFirst(cleanName))Feature"
+                    if result.checkFunctionRemoved {
+                        reportSuccess("Removed \(funcName)")
+                    } else {
+                        reportFailure("Could not find function '\(funcName)'")
+                        hasFailures = true
+                    }
+                } catch {
+                    reportFailure("Failed to process file: \(error.localizedDescription)")
+                    hasFailures = true
+                }
+            } else {
+                reportFailure("File not found")
+                hasFailures = true
+            }
+
+            // 5. Remove from FeatureFlagsDebugViewController.swift (optional)
+            Herald.declare("Updating FeatureFlagsDebugViewController.swift...")
+            if FileManager.default.fileExists(atPath: debugVCPath.path) {
+                do {
+                    let result = try FeatureFlagsDebugViewControllerEditor.removeFeature(
+                        name: cleanName,
+                        filePath: debugVCPath
+                    )
+
+                    if !result.wasPresent {
+                        reportSkipped("Feature not in debug settings (not added with --debug)")
+                    } else if result.removed {
+                        reportSuccess("Removed debug setting")
+                    } else {
+                        reportFailure("Found but could not remove debug setting block")
+                        hasFailures = true
+                    }
+                } catch {
+                    reportFailure("Failed to process file: \(error.localizedDescription)")
+                    hasFailures = true
+                }
+            } else {
+                reportSkipped("File not found (debug settings may not exist)")
+            }
+
+            // Summary
+            Herald.declare("")
+            if hasFailures {
+                Herald.warn("Removal completed with errors. Please check the items marked as FAILED above and remove them manually.")
+            } else {
+                Herald.declare("Successfully removed feature '\(cleanName)'")
+            }
+        }
+
+        // MARK: - Status Reporting
+
+        private func reportSuccess(_ message: String) {
+            Herald.declare("  ✓ \(message)")
+        }
+
+        private func reportFailure(_ message: String) {
+            Herald.warn("  ✗ FAILED: \(message)")
+            Herald.warn("    → You may need to remove this manually")
+        }
+
+        private func reportSkipped(_ message: String) {
+            Herald.declare("  - \(message)")
         }
     }
 }

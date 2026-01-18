@@ -555,8 +555,8 @@ struct NimbusTests {
         #expect(!debugVCContent.contains("with: .beta,"))
     }
 
-    @Test("remove command fails if feature file not found")
-    func removeCommandFailsIfFileNotFound() throws {
+    @Test("remove command completes with status reporting when feature not found")
+    func removeCommandReportsStatusWhenNotFound() throws {
         let repoDir = try createValidRepo()
         defer { cleanup(repoDir) }
         try setupNimbusStructure(in: repoDir)
@@ -568,9 +568,14 @@ struct NimbusTests {
 
         var command = try Nimbus.Remove.parse(["nonexistent"])
 
-        #expect(throws: ValidationError.self) {
-            try command.run()
-        }
+        // Command should complete without throwing - it reports status for each step
+        // (failures are reported as output, not exceptions)
+        try command.run()
+
+        // Verify the Swift files weren't modified (feature didn't exist)
+        let flaggablePath = repoDir.appendingPathComponent("firefox-ios/Client/FeatureFlags/NimbusFlaggableFeature.swift")
+        let flaggableContent = try String(contentsOf: flaggablePath, encoding: .utf8)
+        #expect(!flaggableContent.contains("nonexistent"))
     }
 
     // MARK: - Helper Tests

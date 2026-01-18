@@ -7,6 +7,11 @@ import Foundation
 
 /// Handles modifications to FeatureFlagsDebugViewController.swift
 enum FeatureFlagsDebugViewControllerEditor {
+    struct RemovalResult {
+        let wasPresent: Bool
+        let removed: Bool
+    }
+
     static func addFeature(name: String, filePath: URL) throws {
         var content = try String(contentsOf: filePath, encoding: .utf8)
 
@@ -80,8 +85,15 @@ enum FeatureFlagsDebugViewControllerEditor {
         return content.contains("with: .\(name),")
     }
 
-    static func removeFeature(name: String, filePath: URL) throws {
+    static func removeFeature(name: String, filePath: URL) throws -> RemovalResult {
         var content = try String(contentsOf: filePath, encoding: .utf8)
+
+        // Check if present
+        let wasPresent = content.contains("with: .\(name),")
+        if !wasPresent {
+            return RemovalResult(wasPresent: false, removed: false)
+        }
+
         var lines = content.components(separatedBy: "\n")
 
         // Find the FeatureFlagsBoolSetting block for this feature
@@ -109,11 +121,15 @@ enum FeatureFlagsDebugViewControllerEditor {
             }
         }
 
-        if let start = blockStart, let end = blockEnd {
-            lines.removeSubrange(start...end)
+        guard let start = blockStart, let end = blockEnd else {
+            return RemovalResult(wasPresent: true, removed: false)
         }
+
+        lines.removeSubrange(start...end)
 
         content = lines.joined(separator: "\n")
         try content.write(to: filePath, atomically: true, encoding: .utf8)
+
+        return RemovalResult(wasPresent: true, removed: true)
     }
 }

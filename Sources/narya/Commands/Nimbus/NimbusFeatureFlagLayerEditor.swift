@@ -7,6 +7,11 @@ import Foundation
 
 /// Handles modifications to NimbusFeatureFlagLayer.swift
 enum NimbusFeatureFlagLayerEditor {
+    struct RemovalResult {
+        let switchCaseRemoved: Bool
+        let checkFunctionRemoved: Bool
+    }
+
     static func addFeature(name: String, filePath: URL) throws {
         var content = try String(contentsOf: filePath, encoding: .utf8)
 
@@ -19,33 +24,23 @@ enum NimbusFeatureFlagLayerEditor {
         try content.write(to: filePath, atomically: true, encoding: .utf8)
     }
 
-    static func validateRemoval(name: String, filePath: URL) throws {
-        let content = try String(contentsOf: filePath, encoding: .utf8)
-
-        // Check switch case exists
-        let casePattern = "case \\.\(name):"
-        guard content.range(of: casePattern, options: .regularExpression) != nil else {
-            throw ValidationError("Feature '\(name)' not found in checkNimbusConfigFor switch")
-        }
-
-        // Check function exists
-        let funcName = "check\(StringUtils.capitalizeFirst(name))Feature"
-        let funcPattern = "private func \(funcName)"
-        guard content.contains(funcPattern) else {
-            throw ValidationError("Function '\(funcName)' not found in NimbusFeatureFlagLayer")
-        }
-    }
-
-    static func removeFeature(name: String, filePath: URL) throws {
+    static func removeFeature(name: String, filePath: URL) throws -> RemovalResult {
         var content = try String(contentsOf: filePath, encoding: .utf8)
 
         // 1. Remove switch case
-        content = try removeSwitchCase(name: name, from: content)
+        let (contentAfterSwitch, switchRemoved) = removeSwitchCase(name: name, from: content)
+        content = contentAfterSwitch
 
         // 2. Remove check function
-        content = try removeCheckFunction(name: name, from: content)
+        let (contentAfterFunc, funcRemoved) = removeCheckFunction(name: name, from: content)
+        content = contentAfterFunc
 
         try content.write(to: filePath, atomically: true, encoding: .utf8)
+
+        return RemovalResult(
+            switchCaseRemoved: switchRemoved,
+            checkFunctionRemoved: funcRemoved
+        )
     }
 
     private static func addSwitchCase(name: String, to content: String) throws -> String {
@@ -99,7 +94,7 @@ enum NimbusFeatureFlagLayerEditor {
         return lines.joined(separator: "\n")
     }
 
-    private static func removeSwitchCase(name: String, from content: String) throws -> String {
+    private static func removeSwitchCase(name: String, from content: String) -> (String, Bool) {
         var lines = content.components(separatedBy: "\n")
 
         // Find and remove the case block (case line + return line + possible blank line before)
@@ -112,20 +107,22 @@ enum NimbusFeatureFlagLayerEditor {
             }
         }
 
-        if let index = caseIndex {
-            // Remove blank line before if present
-            if index > 0 && lines[index - 1].trimmingCharacters(in: .whitespaces).isEmpty {
-                lines.remove(at: index - 1)
-                // Adjust index after removal
-                lines.remove(at: index - 1) // case line
-                lines.remove(at: index - 1) // return line
-            } else {
-                lines.remove(at: index) // case line
-                lines.remove(at: index) // return line
-            }
+        guard let index = caseIndex else {
+            return (content, false)
         }
 
-        return lines.joined(separator: "\n")
+        // Remove blank line before if present
+        if index > 0 && lines[index - 1].trimmingCharacters(in: .whitespaces).isEmpty {
+            lines.remove(at: index - 1)
+            // Adjust index after removal
+            lines.remove(at: index - 1) // case line
+            lines.remove(at: index - 1) // return line
+        } else {
+            lines.remove(at: index) // case line
+            lines.remove(at: index) // return line
+        }
+
+        return (lines.joined(separator: "\n"), true)
     }
 
     private static func addCheckFunction(name: String, to content: String) throws -> String {
@@ -158,7 +155,7 @@ enum NimbusFeatureFlagLayerEditor {
         return lines.joined(separator: "\n")
     }
 
-    private static func removeCheckFunction(name: String, from content: String) throws -> String {
+    private static func removeCheckFunction(name: String, from content: String) -> (String, Bool) {
         var lines = content.components(separatedBy: "\n")
 
         let funcName = "check\(StringUtils.capitalizeFirst(name))Feature"
@@ -186,14 +183,16 @@ enum NimbusFeatureFlagLayerEditor {
             }
         }
 
-        if let start = funcStartIndex, let end = funcEndIndex {
-            // Check for blank line before
-            let removeStart = (start > 0 && lines[start - 1].trimmingCharacters(in: .whitespaces).isEmpty)
-                ? start - 1
-                : start
-            lines.removeSubrange(removeStart...end)
+        guard let start = funcStartIndex, let end = funcEndIndex else {
+            return (content, false)
         }
 
-        return lines.joined(separator: "\n")
+        // Check for blank line before
+        let removeStart = (start > 0 && lines[start - 1].trimmingCharacters(in: .whitespaces).isEmpty)
+            ? start - 1
+            : start
+        lines.removeSubrange(removeStart...end)
+
+        return (lines.joined(separator: "\n"), true)
     }
 }
