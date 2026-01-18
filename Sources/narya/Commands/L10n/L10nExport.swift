@@ -73,7 +73,7 @@ extension L10n {
                 try L10nTemplatesTask(l10nRepoPath: l10nProjectPath, xliffName: xliffName).run()
             }
 
-            Herald.declare("Export completed successfully!")
+            Herald.declare("Export completed successfully!", asConclusion: true)
         }
     }
 }
@@ -240,7 +240,7 @@ struct L10nExportTask {
 
         if !errors.isEmpty {
             for error in errors {
-                Herald.warn(error.description)
+                Herald.declare(error.description, asError: true)
             }
             throw errors.first!
         }

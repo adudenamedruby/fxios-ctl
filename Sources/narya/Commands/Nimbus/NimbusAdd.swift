@@ -71,7 +71,7 @@ extension Nimbus {
                 try FeatureFlagsDebugViewControllerEditor.addFeature(name: cleanName, filePath: debugVCPath)
             }
 
-            Herald.declare("Successfully added feature '\(cleanName)'")
+            Herald.declare("Successfully added feature '\(cleanName)'", asConclusion: true)
             Herald.declare("Please remember to add this feature to the feature flag spreadsheet.")
         }
     }

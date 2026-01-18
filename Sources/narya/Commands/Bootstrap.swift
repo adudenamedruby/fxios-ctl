@@ -155,7 +155,7 @@ struct Bootstrap: ParsableCommand {
         do {
             try ShellRunner.run("swift", arguments: ["run"], workingDirectory: browserKitDir)
         } catch {
-            Herald.warn("First `swift run` failed; this is an expected error. Rerunning...")
+            Herald.declare("First `swift run` failed; this is an expected error. Rerunning...", asError: true)
             try ShellRunner.run("swift", arguments: ["run"], workingDirectory: browserKitDir)
         }
 

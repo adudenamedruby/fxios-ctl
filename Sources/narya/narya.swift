@@ -60,7 +60,7 @@ struct Narya: ParsableCommand {
                 }
 
                 // Runtime errors go through Herald
-                Herald.warn(String(describing: error))
+                Herald.declare(String(describing: error), asError: true)
                 Self.exit(withError: ExitCode.failure)
             }
         } catch {

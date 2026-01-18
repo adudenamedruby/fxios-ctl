@@ -161,7 +161,7 @@ struct Run: ParsableCommand {
             simulatorUdid: simulatorSelection.simulator.udid
         )
 
-        Herald.declare("\(buildProduct.scheme) is running in \(simulatorSelection.simulator.name)!")
+        Herald.declare("\(buildProduct.scheme) is running in \(simulatorSelection.simulator.name)!", asConclusion: true)
     }
 
     // MARK: - Private Methods

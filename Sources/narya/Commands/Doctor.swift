@@ -39,7 +39,7 @@ struct Doctor: ParsableCommand {
 
         // Summary
         if issues.isEmpty {
-            Herald.declare("All checks passed! Your environment is ready for development.")
+            Herald.declare("All checks passed! Your environment is ready for development.", asConclusion: true)
         } else {
             Herald.declare("Found \(issues.count) issue(s):")
             for issue in issues {

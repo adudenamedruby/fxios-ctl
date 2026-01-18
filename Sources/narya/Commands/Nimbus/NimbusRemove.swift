@@ -166,9 +166,9 @@ extension Nimbus {
             // Summary
             Herald.declare("")
             if hasFailures {
-                Herald.warn("Removal completed with errors. Please check the items marked as FAILED above and remove them manually.")
+                Herald.declare("Removal completed with errors. Please check the items marked as FAILED above and remove them manually.", asError: true, asConclusion: true)
             } else {
-                Herald.declare("Successfully removed feature '\(cleanName)'")
+                Herald.declare("Successfully removed feature '\(cleanName)'", asConclusion: true)
             }
         }
 
@@ -179,8 +179,8 @@ extension Nimbus {
         }
 
         private func reportFailure(_ message: String) {
-            Herald.warn("  ✗ FAILED: \(message)")
-            Herald.warn("    → You may need to remove this manually")
+            Herald.declare("  ✗ FAILED: \(message)", asError: true)
+            Herald.declare("    → You may need to remove this manually", asError: true)
         }
 
         private func reportSkipped(_ message: String) {

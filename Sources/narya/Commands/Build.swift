@@ -140,7 +140,7 @@ struct Build: ParsableCommand {
             simulator: simulatorSelection
         )
 
-        Herald.declare("Build succeeded!")
+        Herald.declare("Build succeeded!", asConclusion: true)
     }
 
     // MARK: - Private Methods

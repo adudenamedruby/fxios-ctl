@@ -50,10 +50,10 @@ extension Lint {
 
                 do {
                     try ShellRunner.run("swiftlint", arguments: ["--fix"], workingDirectory: repoRoot)
-                    Herald.declare("Fix complete!")
+                    Herald.declare("Fix complete!", asConclusion: true)
                 } catch let error as ShellRunnerError {
                     if case .commandFailed(_, let exitCode) = error {
-                        Herald.warn("Fix completed with issues (exit code \(exitCode))")
+                        Herald.declare("Fix completed with issues (exit code \(exitCode))", asError: true, asConclusion: true)
                     } else {
                         throw error
                     }
@@ -87,9 +87,9 @@ extension Lint {
                 }
 
                 if hasIssues {
-                    Herald.warn("Fix completed with issues")
+                    Herald.declare("Fix completed with issues", asError: true, asConclusion: true)
                 } else {
-                    Herald.declare("Fix complete!")
+                    Herald.declare("Fix complete!", asConclusion: true)
                 }
             }
         }

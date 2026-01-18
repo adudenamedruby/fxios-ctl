@@ -38,7 +38,7 @@ extension L10n {
 
             try L10nTemplatesTask(l10nRepoPath: l10nProjectPath, xliffName: xliffName).run()
 
-            Herald.declare("Templates created successfully!")
+            Herald.declare("Templates created successfully!", asConclusion: true)
         }
     }
 }

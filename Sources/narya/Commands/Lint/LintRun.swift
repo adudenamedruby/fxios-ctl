@@ -58,13 +58,13 @@ extension Lint {
 
                 do {
                     try ShellRunner.run("swiftlint", arguments: [], workingDirectory: repoRoot)
-                    Herald.declare("Linting complete!")
+                    Herald.declare("Linting complete!", asConclusion: true)
                 } catch let error as ShellRunnerError {
                     if case .commandFailed(_, let exitCode) = error {
                         if strict {
                             throw LintError.lintFailed(exitCode: exitCode)
                         }
-                        Herald.warn("Linting found violations (exit code \(exitCode))")
+                        Herald.declare("Linting found violations (exit code \(exitCode))", asError: true, asConclusion: true)
                     } else {
                         throw error
                     }
@@ -109,9 +109,9 @@ extension Lint {
                 }
 
                 if hasViolations {
-                    Herald.warn("Linting found violations")
+                    Herald.declare("Linting found violations", asError: true, asConclusion: true)
                 } else {
-                    Herald.declare("Linting complete!")
+                    Herald.declare("Linting complete!", asConclusion: true)
                 }
             }
         }

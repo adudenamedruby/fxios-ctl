@@ -73,7 +73,7 @@ extension L10n {
                 skipWidgetKit: skipWidgetKit
             ).run()
 
-            Herald.declare("Import completed successfully!")
+            Herald.declare("Import completed successfully!", asConclusion: true)
         }
     }
 }

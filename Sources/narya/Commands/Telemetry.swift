@@ -155,7 +155,7 @@ struct Telemetry: ParsableCommand {
 
     private func updateTagsYaml(at url: URL, tagName: String, description: String?) throws -> Bool {
         guard FileManager.default.fileExists(atPath: url.path) else {
-            Herald.warn("Warning: tags.yaml not found, skipping tag update")
+            Herald.declare("Warning: tags.yaml not found, skipping tag update", asError: true)
             return false
         }
 

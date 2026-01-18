@@ -10,25 +10,51 @@ enum Herald {
     // This is a CLI tool that runs single-threaded, so mutable global state is safe
     nonisolated(unsafe) private static var isFirstLine = true
 
-    /// Declares a message with the appropriate prefix (💍 for first line, ▌ for subsequent)
-    static func declare(_ message: String) {
-        let prefix = isFirstLine ? "💍" : "▒"
-        isFirstLine = false
-        Swift.print("\(prefix) \(message)")
-    }
-
-    /// Warns with a warning/error message using 💥💍 prefix.
-    /// Multi-line messages use ▒ for subsequent lines.
-    static func warn(_ message: String) {
-        let lines = message.components(separatedBy: .newlines)
-        for (index, line) in lines.enumerated() {
-            let prefix = index == 0 ? "💥💍" : "▒"
-            Swift.print("\(prefix) \(line)")
-        }
-    }
-
     /// Resets the output state for a new command execution
     static func reset() {
         isFirstLine = true
+    }
+
+    /// Declares a message with formatted prefix based on context.
+    ///
+    /// Output prefixes:
+    /// - First line: `💍` (or `💍 💥` if asError)
+    /// - Subsequent lines: `▒` (or `▒ 💥` if asError)
+    /// - Conclusion lines: `💍` (or `💍 💥` if asError)
+    ///
+    /// Multi-line messages use `▒ ▒ ` prefix for lines after the first.
+    ///
+    /// - Parameters:
+    ///   - message: The message to display
+    ///   - asError: If true, adds 💥 to indicate an error/warning
+    ///   - asConclusion: If true, uses 💍 prefix regardless of position (visual only, doesn't reset state)
+    static func declare(
+        _ message: String,
+        asError: Bool = false,
+        asConclusion: Bool = false
+    ) {
+        let lines = message.components(separatedBy: .newlines)
+
+        for (index, line) in lines.enumerated() {
+            let prefix: String
+            if index == 0 {
+                // First line of this message
+                let useRingPrefix = isFirstLine || asConclusion
+                if useRingPrefix {
+                    prefix = asError ? "💍 💥" : "💍"
+                } else {
+                    prefix = asError ? "▒ 💥" : "▒"
+                }
+            } else {
+                // Subsequent lines of multi-line message
+                prefix = "▒ ▒"
+            }
+
+            Swift.print("\(prefix) \(line)")
+        }
+
+        // Only the first call sets isFirstLine to false
+        // asConclusion does NOT reset state
+        isFirstLine = false
     }
 }

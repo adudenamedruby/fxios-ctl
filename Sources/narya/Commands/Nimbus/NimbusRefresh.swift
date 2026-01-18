@@ -18,7 +18,7 @@ extension Nimbus {
 
             Herald.declare("Updating nimbus.fml.yaml include block...")
             try NimbusHelpers.updateNimbusFml(repoRoot: repo.root)
-            Herald.declare("Successfully updated nimbus.fml.yaml")
+            Herald.declare("Successfully updated nimbus.fml.yaml", asConclusion: true)
         }
     }
 }

@@ -112,7 +112,7 @@ struct Version: ParsableCommand {
 
         Herald.declare("Bumping version: \(currentVersion) -> \(newVersion)")
         try updateVersionInFiles(from: currentVersion, to: newVersion, repoRoot: repoRoot)
-        Herald.declare("Version updated to \(newVersion)")
+        Herald.declare("Version updated to \(newVersion)", asConclusion: true)
     }
 
     // MARK: - Set Version
@@ -124,13 +124,13 @@ struct Version: ParsableCommand {
         let currentVersion = try readVersion(repoRoot: repoRoot)
 
         if currentVersion == newVersion {
-            Herald.declare("Version is already \(newVersion)")
+            Herald.declare("Version is already \(newVersion)", asConclusion: true)
             return
         }
 
         Herald.declare("Setting version: \(currentVersion) -> \(newVersion)")
         try updateVersionInFiles(from: currentVersion, to: newVersion, repoRoot: repoRoot)
-        Herald.declare("Version updated to \(newVersion)")
+        Herald.declare("Version updated to \(newVersion)", asConclusion: true)
     }
 
     // MARK: - Verify Version
@@ -161,9 +161,9 @@ struct Version: ParsableCommand {
         }
 
         if mismatches.isEmpty {
-            Herald.declare("All files have consistent version \(expectedVersion)")
+            Herald.declare("All files have consistent version \(expectedVersion)", asConclusion: true)
         } else {
-            Herald.warn("Version mismatches found:")
+            Herald.declare("Version mismatches found:", asError: true, asConclusion: true)
             for mismatch in mismatches {
                 if let found = mismatch.found {
                     print("  - \(mismatch.file): found '\(found)'")
@@ -281,7 +281,7 @@ struct Version: ParsableCommand {
 
     private func updateVersionInFile(at url: URL, from currentVersion: String, to newVersion: String) throws {
         guard FileManager.default.fileExists(atPath: url.path) else {
-            Herald.warn("Warning: File not found, skipping: \(url.path)")
+            Herald.declare("Warning: File not found, skipping: \(url.path)", asError: true)
             return
         }
 

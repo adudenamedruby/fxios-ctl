@@ -93,7 +93,7 @@ struct Clean: ParsableCommand {
         Herald.declare("Resolving Swift packages...")
         try ShellRunner.run("swift", arguments: ["package", "resolve"], workingDirectory: repoRoot)
 
-        Herald.declare("Swift packages cleaned!")
+        Herald.declare("Swift packages cleaned!", asConclusion: true)
     }
 
     // MARK: - Expose Command

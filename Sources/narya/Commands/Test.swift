@@ -141,7 +141,7 @@ struct Test: ParsableCommand {
             repoRoot: repo.root
         )
 
-        Herald.declare("Tests passed!")
+        Herald.declare("Tests passed!", asConclusion: true)
     }
 
     // MARK: - Private Methods
