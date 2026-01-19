@@ -39,6 +39,6 @@ struct Lint: ParsableCommand {
             capabilites of that tool if you need to use it.
             """,
         subcommands: [Run.self, Fix.self, Info.self],
-        defaultSubcommand: Run.self
+        defaultSubcommand: nil
     )
 }
