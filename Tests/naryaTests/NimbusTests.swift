@@ -422,8 +422,8 @@ struct NimbusTests {
         #expect(content.contains("nimbus.features.beta.value().enabled"))
     }
 
-    @Test("add command with --debug updates debug settings")
-    func addCommandWithDebugUpdatesDebugSettings() throws {
+    @Test("add command with --qa updates QA settings")
+    func addCommandWithQaUpdatesQaSettings() throws {
         let repoDir = try createValidRepo()
         defer { cleanup(repoDir) }
         try setupNimbusStructure(in: repoDir)
@@ -433,7 +433,7 @@ struct NimbusTests {
         FileManager.default.changeCurrentDirectoryPath(repoDir.path)
         defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
 
-        var command = try Nimbus.Add.parse(["beta", "--debug"])
+        var command = try Nimbus.Add.parse(["beta", "--qa"])
         try command.run()
 
         // Check NimbusFlaggableFeature.swift for debugKey
@@ -467,6 +467,122 @@ struct NimbusTests {
 
         #expect(content.contains("case .beta:"))
         #expect(content.contains("fatalError(\"Please implement a key for this feature\")"))
+    }
+
+    @Test("add command with --description adds description to template")
+    func addCommandWithDescriptionAddsToTemplate() throws {
+        let repoDir = try createValidRepo()
+        defer { cleanup(repoDir) }
+        try setupNimbusStructure(in: repoDir)
+        try setupSwiftFiles(in: repoDir)
+
+        let originalDir = FileManager.default.currentDirectoryPath
+        FileManager.default.changeCurrentDirectoryPath(repoDir.path)
+        defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
+
+        var command = try Nimbus.Add.parse(["beta", "--description", "This is a test feature for beta users"])
+        try command.run()
+
+        let newFile = repoDir.appendingPathComponent("firefox-ios/nimbus-features/betaFeature.yaml")
+        let content = try String(contentsOf: newFile, encoding: .utf8)
+
+        #expect(content.contains("This is a test feature for beta users"))
+    }
+
+    @Test("add command without --description uses default description")
+    func addCommandWithoutDescriptionUsesDefault() throws {
+        let repoDir = try createValidRepo()
+        defer { cleanup(repoDir) }
+        try setupNimbusStructure(in: repoDir)
+        try setupSwiftFiles(in: repoDir)
+
+        let originalDir = FileManager.default.currentDirectoryPath
+        FileManager.default.changeCurrentDirectoryPath(repoDir.path)
+        defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
+
+        var command = try Nimbus.Add.parse(["beta"])
+        try command.run()
+
+        let newFile = repoDir.appendingPathComponent("firefox-ios/nimbus-features/betaFeature.yaml")
+        let content = try String(contentsOf: newFile, encoding: .utf8)
+
+        #expect(content.contains("Feature description"))
+    }
+
+    @Test("add command rejects description over 100 characters")
+    func addCommandRejectsLongDescription() throws {
+        let repoDir = try createValidRepo()
+        defer { cleanup(repoDir) }
+        try setupNimbusStructure(in: repoDir)
+        try setupSwiftFiles(in: repoDir)
+
+        let originalDir = FileManager.default.currentDirectoryPath
+        FileManager.default.changeCurrentDirectoryPath(repoDir.path)
+        defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
+
+        let longDescription = String(repeating: "a", count: 101)
+        var command = try Nimbus.Add.parse(["beta", "--description", longDescription])
+
+        #expect(throws: ValidationError.self) {
+            try command.run()
+        }
+    }
+
+    @Test("add command accepts description of exactly 100 characters")
+    func addCommandAccepts100CharDescription() throws {
+        let repoDir = try createValidRepo()
+        defer { cleanup(repoDir) }
+        try setupNimbusStructure(in: repoDir)
+        try setupSwiftFiles(in: repoDir)
+
+        let originalDir = FileManager.default.currentDirectoryPath
+        FileManager.default.changeCurrentDirectoryPath(repoDir.path)
+        defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
+
+        let exactDescription = String(repeating: "a", count: 100)
+        var command = try Nimbus.Add.parse(["beta", "--description", exactDescription])
+        try command.run()
+
+        let newFile = repoDir.appendingPathComponent("firefox-ios/nimbus-features/betaFeature.yaml")
+        let content = try String(contentsOf: newFile, encoding: .utf8)
+
+        #expect(content.contains(exactDescription))
+    }
+
+    @Test("add command rejects feature name shorter than 3 characters")
+    func addCommandRejectsShortFeatureName() throws {
+        let repoDir = try createValidRepo()
+        defer { cleanup(repoDir) }
+        try setupNimbusStructure(in: repoDir)
+        try setupSwiftFiles(in: repoDir)
+
+        let originalDir = FileManager.default.currentDirectoryPath
+        FileManager.default.changeCurrentDirectoryPath(repoDir.path)
+        defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
+
+        var command = try Nimbus.Add.parse(["ab"])
+
+        #expect(throws: ValidationError.self) {
+            try command.run()
+        }
+    }
+
+    @Test("add command accepts feature name of exactly 3 characters")
+    func addCommandAccepts3CharFeatureName() throws {
+        let repoDir = try createValidRepo()
+        defer { cleanup(repoDir) }
+        try setupNimbusStructure(in: repoDir)
+        try setupSwiftFiles(in: repoDir)
+
+        let originalDir = FileManager.default.currentDirectoryPath
+        FileManager.default.changeCurrentDirectoryPath(repoDir.path)
+        defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
+
+        var command = try Nimbus.Add.parse(["abc"])
+        try command.run()
+
+        let newFile = repoDir.appendingPathComponent("firefox-ios/nimbus-features/abcFeature.yaml")
+        #expect(FileManager.default.fileExists(atPath: newFile.path))
     }
 
     // MARK: - Remove Subcommand Tests
@@ -507,8 +623,8 @@ struct NimbusTests {
         FileManager.default.changeCurrentDirectoryPath(repoDir.path)
         defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
 
-        // First add a feature with --debug
-        var addCommand = try Nimbus.Add.parse(["beta", "--debug"])
+        // First add a feature with --qa
+        var addCommand = try Nimbus.Add.parse(["beta", "--qa"])
         try addCommand.run()
 
         // Verify it was added

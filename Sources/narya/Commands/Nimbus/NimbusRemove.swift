@@ -146,7 +146,7 @@ extension Nimbus {
                     )
 
                     if !result.wasPresent {
-                        reportSkipped("Feature not in debug settings (not added with --debug)")
+                        reportSkipped("Feature not in QA settings (not added with --qa)")
                     } else if result.removed {
                         reportSuccess("Removed debug setting")
                     } else {

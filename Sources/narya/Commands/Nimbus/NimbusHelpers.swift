@@ -62,15 +62,16 @@ enum NimbusHelpers {
     }
 
     /// Writes the feature YAML template
-    static func writeFeatureTemplate(to url: URL, featureName: String) throws {
+    static func writeFeatureTemplate(to url: URL, featureName: String, description: String? = nil) throws {
         let kebabName = camelToKebabCase(featureName)
+        let featureDescription = description ?? "Feature description"
 
         let template = """
             # The configuration for the \(featureName) feature
             features:
               \(kebabName):
                 description: >
-                  Feature description
+                  \(featureDescription)
                 variables:
                   enabled:
                     description: >
