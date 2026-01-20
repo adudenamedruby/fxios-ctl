@@ -31,8 +31,8 @@ struct Lint: ParsableCommand {
         commandName: "lint",
         abstract: "Run SwiftLint on the codebase.",
         discussion: """
-            By default, lints only Swift files changed compared to the main branch. \
-            Use --all to run swiftlint on the entire codebase.
+            By default, lints the entire codebase. \
+            Use --changed to lint only Swift files changed compared to the main branch.
 
             This is not meant to replace swiftlint; merely be a simplified \
             entry-point for development. Please consult swiftlint for the full \

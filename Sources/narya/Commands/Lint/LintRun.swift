@@ -14,11 +14,8 @@ extension Lint {
 
         // MARK: - Scope
 
-        @Flag(name: [.short, .long], help: "Lint only files changed compared to main branch (default).")
+        @Flag(name: [.short, .long], help: "Lint only files changed compared to main branch.")
         var changed = false
-
-        @Flag(name: [.short, .long], help: "Lint the entire codebase (runs swiftlint at repo root).")
-        var all = false
 
         // MARK: - Options
 
@@ -37,8 +34,8 @@ extension Lint {
             let repo = try RepoDetector.requireValidRepo()
             try LintHelpers.requireSwiftlint()
 
-            // Default is changed (unless --all is specified)
-            let lintAll = all
+            // Default is all (unless --changed is specified)
+            let lintAll = !changed
 
             if expose {
                 printExposedCommands(lintAll: lintAll, repoRoot: repo.root)

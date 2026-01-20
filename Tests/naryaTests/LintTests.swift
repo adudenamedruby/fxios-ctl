@@ -37,9 +37,9 @@ struct LintTests {
         #expect(subcommands.contains { $0 == Lint.Info.self })
     }
 
-    @Test("Command has Run as default subcommand")
-    func hasDefaultSubcommand() {
-        #expect(Lint.configuration.defaultSubcommand == Lint.Run.self)
+    @Test("Command has no default subcommand")
+    func hasNoDefaultSubcommand() {
+        #expect(Lint.configuration.defaultSubcommand == nil)
     }
 
     // MARK: - Run Subcommand Tests
@@ -55,18 +55,10 @@ struct LintTests {
         #expect(!abstract.isEmpty)
     }
 
-    @Test("Run can parse --all flag")
-    func runParseAllFlag() throws {
-        let command = try Lint.Run.parse(["--all"])
-        #expect(command.all == true)
-        #expect(command.changed == false)
-    }
-
     @Test("Run can parse --changed flag")
     func runParseChangedFlag() throws {
         let command = try Lint.Run.parse(["--changed"])
         #expect(command.changed == true)
-        #expect(command.all == false)
     }
 
     @Test("Run can parse --strict flag")
@@ -95,8 +87,8 @@ struct LintTests {
 
     @Test("Run can parse multiple flags together")
     func runParseMultipleFlags() throws {
-        let command = try Lint.Run.parse(["--all", "--strict", "-q"])
-        #expect(command.all == true)
+        let command = try Lint.Run.parse(["--changed", "--strict", "-q"])
+        #expect(command.changed == true)
         #expect(command.strict == true)
         #expect(command.quiet == true)
     }
