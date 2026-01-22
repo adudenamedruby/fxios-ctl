@@ -10,9 +10,11 @@ Named after Narya, the Ring of Fire, and one of the three Rings of the Elves, fo
 
 The goals of this tool are simple:
 
-**1. Provide easily reproducible commands for all developers & CI**
-**2. Provide a central place for important utilities used to manage the firefox-ios repo**
-**3. Provide a thoroughly documented, understandable experience that will reduce tribal knowledge**
+**1. Provide a thoroughly documented, understandable experience that will reduce tribal knowledge**
+
+**2. Provide easily reproducible commands for all developers & CI**
+
+**3. Provide a central place for important utilities used to manage the firefox-ios repo**
 
 ```
 ⚠️ A possible fourth goal - we're still deciding if this is truly a goal:
