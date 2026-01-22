@@ -9,6 +9,7 @@ import Foundation
 enum ShellRunnerError: Error, CustomStringConvertible {
     case commandFailed(command: String, exitCode: Int32)
     case executionFailed(command: String, reason: String)
+    case timedOut(command: String, timeout: TimeInterval)
 
     var description: String {
         switch self {
@@ -16,6 +17,8 @@ enum ShellRunnerError: Error, CustomStringConvertible {
             return "\(command) failed with exit code \(exitCode)."
         case .executionFailed(let command, let reason):
             return "Failed to execute \(command): \(reason)"
+        case .timedOut(let command, let timeout):
+            return "\(command) timed out after \(Int(timeout)) seconds."
         }
     }
 }
@@ -71,12 +74,23 @@ enum ShellRunner {
     }
 
     /// Runs a command and captures stdout, suppressing stderr.
+    /// - Parameters:
+    ///   - command: The command to execute
+    ///   - arguments: Arguments to pass to the command
+    ///   - workingDirectory: Optional working directory
+    ///   - timeout: Optional timeout in seconds. If nil, waits indefinitely.
+    /// - Returns: The captured stdout as a String
+    /// - Throws: ShellRunnerError if the command fails, can't be executed, or times out
     static func runAndCapture(
         _ command: String,
         arguments: [String] = [],
-        workingDirectory: URL? = nil
+        workingDirectory: URL? = nil,
+        timeout: TimeInterval? = nil
     ) throws -> String {
         Logger.debug("Executing (capture): \(command) \(arguments.joined(separator: " "))")
+        if let timeout = timeout {
+            Logger.debug("Timeout: \(timeout) seconds")
+        }
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
@@ -101,7 +115,32 @@ enum ShellRunner {
             )
         }
 
-        process.waitUntilExit()
+        // If timeout is specified, wait with timeout; otherwise wait indefinitely
+        if let timeout = timeout {
+            let semaphore = DispatchSemaphore(value: 0)
+
+            // Set up termination handler to signal completion
+            process.terminationHandler = { _ in
+                semaphore.signal()
+            }
+
+            // Wait for process to complete or timeout
+            let result = semaphore.wait(timeout: .now() + timeout)
+
+            if result == .timedOut {
+                Logger.debug("\(command) timed out after \(timeout) seconds, terminating process")
+                process.terminate()
+                // Give the process a moment to terminate gracefully
+                Thread.sleep(forTimeInterval: 0.1)
+                if process.isRunning {
+                    // Force kill if still running
+                    kill(process.processIdentifier, SIGKILL)
+                }
+                throw ShellRunnerError.timedOut(command: command, timeout: timeout)
+            }
+        } else {
+            process.waitUntilExit()
+        }
 
         if process.terminationStatus != 0 {
             Logger.debug("\(command) exited with code \(process.terminationStatus)")

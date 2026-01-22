@@ -46,6 +46,9 @@ struct SimulatorSelection {
     let runtime: SimulatorRuntime
 }
 
+/// Type alias for simulator list grouped by runtime
+typealias SimulatorsByRuntime = [(runtime: SimulatorRuntime, devices: [Simulator])]
+
 // MARK: - Errors
 
 enum SimulatorManagerError: Error, CustomStringConvertible {
@@ -100,6 +103,12 @@ enum SimulatorManagerError: Error, CustomStringConvertible {
 // MARK: - SimulatorManager
 
 enum SimulatorManager {
+    // MARK: - Constants
+
+    /// Timeout for simctl commands in seconds.
+    /// simctl can hang indefinitely if CoreSimulator service is stuck.
+    private static let simctlTimeout: TimeInterval = 15
+
     // MARK: - simctl JSON Response Structures
 
     private struct SimctlDevicesResponse: Codable {
@@ -151,9 +160,15 @@ enum SimulatorManager {
     }
 
     /// Finds the best default simulator (latest iOS, numbered base iPhone preferred)
+    /// This overload fetches the simulator list. Use `findDefaultSimulator(from:)` if you already have the list.
     static func findDefaultSimulator() throws -> SimulatorSelection {
         let simulatorsByRuntime = try listSimulators()
+        return try findDefaultSimulator(from: simulatorsByRuntime)
+    }
 
+    /// Finds the best default simulator from a pre-fetched simulator list
+    /// Use this to avoid redundant simctl calls when you already have the list.
+    static func findDefaultSimulator(from simulatorsByRuntime: SimulatorsByRuntime) throws -> SimulatorSelection {
         guard !simulatorsByRuntime.isEmpty else {
             throw SimulatorManagerError.noSimulatorsFound
         }
@@ -307,10 +322,24 @@ enum SimulatorManager {
     // MARK: - Private Helpers
 
     private static func getRuntimes() throws -> [SimulatorRuntime] {
-        Logger.debug("Fetching simulator runtimes via simctl")
+        Logger.debug("Fetching simulator runtimes via simctl (timeout: \(simctlTimeout)s)")
         let output: String
         do {
-            output = try ShellRunner.runAndCapture("xcrun", arguments: ["simctl", "list", "runtimes", "--json"])
+            output = try ShellRunner.runAndCapture(
+                "xcrun",
+                arguments: ["simctl", "list", "runtimes", "--json"],
+                timeout: simctlTimeout
+            )
+        } catch let error as ShellRunnerError {
+            if case .timedOut = error {
+                Logger.error("simctl list runtimes timed out", error: error)
+                throw SimulatorManagerError.simctlFailed(
+                    reason: "simctl timed out. The CoreSimulator service may be stuck. Try: killall -9 com.apple.CoreSimulator.CoreSimulatorService",
+                    underlyingError: error
+                )
+            }
+            Logger.error("Failed to fetch runtimes", error: error)
+            throw SimulatorManagerError.simctlFailed(reason: "Failed to list runtimes", underlyingError: error)
         } catch {
             Logger.error("Failed to fetch runtimes", error: error)
             throw SimulatorManagerError.simctlFailed(reason: "Failed to list runtimes", underlyingError: error)
@@ -338,10 +367,24 @@ enum SimulatorManager {
     }
 
     private static func getDevices() throws -> [String: [Simulator]] {
-        Logger.debug("Fetching simulator devices via simctl")
+        Logger.debug("Fetching simulator devices via simctl (timeout: \(simctlTimeout)s)")
         let output: String
         do {
-            output = try ShellRunner.runAndCapture("xcrun", arguments: ["simctl", "list", "devices", "--json"])
+            output = try ShellRunner.runAndCapture(
+                "xcrun",
+                arguments: ["simctl", "list", "devices", "--json"],
+                timeout: simctlTimeout
+            )
+        } catch let error as ShellRunnerError {
+            if case .timedOut = error {
+                Logger.error("simctl list devices timed out", error: error)
+                throw SimulatorManagerError.simctlFailed(
+                    reason: "simctl timed out. The CoreSimulator service may be stuck. Try: killall -9 com.apple.CoreSimulator.CoreSimulatorService",
+                    underlyingError: error
+                )
+            }
+            Logger.error("Failed to fetch devices", error: error)
+            throw SimulatorManagerError.simctlFailed(reason: "Failed to list devices", underlyingError: error)
         } catch {
             Logger.error("Failed to fetch devices", error: error)
             throw SimulatorManagerError.simctlFailed(reason: "Failed to list devices", underlyingError: error)
