@@ -136,9 +136,10 @@ enum SimulatorManager {
     // MARK: - Public Methods
 
     /// Lists all available iOS simulators grouped by runtime
-    static func listSimulators() throws -> [(runtime: SimulatorRuntime, devices: [Simulator])] {
-        let runtimes = try getRuntimes()
-        let devicesByRuntime = try getDevices()
+    /// - Parameter useFileFlow: If true, writes simctl JSON output to temp files before parsing (for debugging hang issues)
+    static func listSimulators(useFileFlow: Bool = false) throws -> [(runtime: SimulatorRuntime, devices: [Simulator])] {
+        let runtimes = try getRuntimes(useFileFlow: useFileFlow)
+        let devicesByRuntime = try getDevices(useFileFlow: useFileFlow)
 
         var result: [(runtime: SimulatorRuntime, devices: [Simulator])] = []
 
@@ -321,28 +322,34 @@ enum SimulatorManager {
 
     // MARK: - Private Helpers
 
-    private static func getRuntimes() throws -> [SimulatorRuntime] {
-        Logger.debug("Fetching simulator runtimes via simctl (timeout: \(simctlTimeout)s)")
+    private static func getRuntimes(useFileFlow: Bool = false) throws -> [SimulatorRuntime] {
         let output: String
-        do {
-            output = try ShellRunner.runAndCapture(
-                "xcrun",
-                arguments: ["simctl", "list", "runtimes", "--json"],
-                timeout: simctlTimeout
-            )
-        } catch let error as ShellRunnerError {
-            if case .timedOut = error {
-                Logger.error("simctl list runtimes timed out", error: error)
-                throw SimulatorManagerError.simctlFailed(
-                    reason: "simctl timed out. The CoreSimulator service may be stuck. Try: killall -9 com.apple.CoreSimulator.CoreSimulatorService",
-                    underlyingError: error
+
+        if useFileFlow {
+            Logger.debug("Fetching simulator runtimes via simctl using file flow")
+            output = try runSimctlWithFileFlow(command: "runtimes")
+        } else {
+            Logger.debug("Fetching simulator runtimes via simctl (timeout: \(simctlTimeout)s)")
+            do {
+                output = try ShellRunner.runAndCapture(
+                    "xcrun",
+                    arguments: ["simctl", "list", "runtimes", "--json"],
+                    timeout: simctlTimeout
                 )
+            } catch let error as ShellRunnerError {
+                if case .timedOut = error {
+                    Logger.error("simctl list runtimes timed out", error: error)
+                    throw SimulatorManagerError.simctlFailed(
+                        reason: "simctl timed out. The CoreSimulator service may be stuck. Try: killall -9 com.apple.CoreSimulator.CoreSimulatorService",
+                        underlyingError: error
+                    )
+                }
+                Logger.error("Failed to fetch runtimes", error: error)
+                throw SimulatorManagerError.simctlFailed(reason: "Failed to list runtimes", underlyingError: error)
+            } catch {
+                Logger.error("Failed to fetch runtimes", error: error)
+                throw SimulatorManagerError.simctlFailed(reason: "Failed to list runtimes", underlyingError: error)
             }
-            Logger.error("Failed to fetch runtimes", error: error)
-            throw SimulatorManagerError.simctlFailed(reason: "Failed to list runtimes", underlyingError: error)
-        } catch {
-            Logger.error("Failed to fetch runtimes", error: error)
-            throw SimulatorManagerError.simctlFailed(reason: "Failed to list runtimes", underlyingError: error)
         }
 
         guard let data = output.data(using: .utf8) else {
@@ -366,28 +373,34 @@ enum SimulatorManager {
         }
     }
 
-    private static func getDevices() throws -> [String: [Simulator]] {
-        Logger.debug("Fetching simulator devices via simctl (timeout: \(simctlTimeout)s)")
+    private static func getDevices(useFileFlow: Bool = false) throws -> [String: [Simulator]] {
         let output: String
-        do {
-            output = try ShellRunner.runAndCapture(
-                "xcrun",
-                arguments: ["simctl", "list", "devices", "--json"],
-                timeout: simctlTimeout
-            )
-        } catch let error as ShellRunnerError {
-            if case .timedOut = error {
-                Logger.error("simctl list devices timed out", error: error)
-                throw SimulatorManagerError.simctlFailed(
-                    reason: "simctl timed out. The CoreSimulator service may be stuck. Try: killall -9 com.apple.CoreSimulator.CoreSimulatorService",
-                    underlyingError: error
+
+        if useFileFlow {
+            Logger.debug("Fetching simulator devices via simctl using file flow")
+            output = try runSimctlWithFileFlow(command: "devices")
+        } else {
+            Logger.debug("Fetching simulator devices via simctl (timeout: \(simctlTimeout)s)")
+            do {
+                output = try ShellRunner.runAndCapture(
+                    "xcrun",
+                    arguments: ["simctl", "list", "devices", "--json"],
+                    timeout: simctlTimeout
                 )
+            } catch let error as ShellRunnerError {
+                if case .timedOut = error {
+                    Logger.error("simctl list devices timed out", error: error)
+                    throw SimulatorManagerError.simctlFailed(
+                        reason: "simctl timed out. The CoreSimulator service may be stuck. Try: killall -9 com.apple.CoreSimulator.CoreSimulatorService",
+                        underlyingError: error
+                    )
+                }
+                Logger.error("Failed to fetch devices", error: error)
+                throw SimulatorManagerError.simctlFailed(reason: "Failed to list devices", underlyingError: error)
+            } catch {
+                Logger.error("Failed to fetch devices", error: error)
+                throw SimulatorManagerError.simctlFailed(reason: "Failed to list devices", underlyingError: error)
             }
-            Logger.error("Failed to fetch devices", error: error)
-            throw SimulatorManagerError.simctlFailed(reason: "Failed to list devices", underlyingError: error)
-        } catch {
-            Logger.error("Failed to fetch devices", error: error)
-            throw SimulatorManagerError.simctlFailed(reason: "Failed to list devices", underlyingError: error)
         }
 
         guard let data = output.data(using: .utf8) else {
@@ -415,6 +428,57 @@ enum SimulatorManager {
             Logger.error("Failed to parse devices JSON", error: error)
             throw SimulatorManagerError.parseError(reason: "JSON decoding failed", underlyingError: error)
         }
+    }
+
+    /// Runs a simctl list command by writing JSON output to a temp file, then reading it.
+    /// This works around potential issues with large output causing pipe buffer hangs.
+    /// - Parameter command: The simctl list subcommand (e.g., "devices" or "runtimes")
+    /// - Returns: The JSON content as a string
+    private static func runSimctlWithFileFlow(command: String) throws -> String {
+        let tempFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("narya_simctl_\(command)_\(UUID().uuidString).json")
+
+        Logger.debug("Writing simctl \(command) output to: \(tempFile.path)")
+
+        // Run the command with shell redirection to the temp file
+        let shellCommand = "xcrun simctl list \(command) --json > '\(tempFile.path)'"
+        do {
+            try ShellRunner.run("bash", arguments: ["-c", shellCommand])
+        } catch {
+            // Clean up temp file if it was created
+            try? FileManager.default.removeItem(at: tempFile)
+            Logger.error("Failed to run simctl \(command) with file flow", error: error)
+            throw SimulatorManagerError.simctlFailed(
+                reason: "Failed to list \(command) (file flow)",
+                underlyingError: error
+            )
+        }
+
+        // Read the file contents
+        let output: String
+        do {
+            output = try String(contentsOf: tempFile, encoding: .utf8)
+            Logger.debug("Read \(output.count) characters from temp file")
+        } catch {
+            // Clean up temp file
+            try? FileManager.default.removeItem(at: tempFile)
+            Logger.error("Failed to read simctl \(command) output file", error: error)
+            throw SimulatorManagerError.parseError(
+                reason: "Failed to read temp file",
+                underlyingError: error
+            )
+        }
+
+        // Clean up temp file
+        do {
+            try FileManager.default.removeItem(at: tempFile)
+            Logger.debug("Cleaned up temp file")
+        } catch {
+            Logger.debug("Warning: Could not delete temp file: \(error)")
+            // Don't throw - we have the data we need
+        }
+
+        return output
     }
 
     private static func compareVersions(_ v1: String, _ v2: String) -> ComparisonResult {
