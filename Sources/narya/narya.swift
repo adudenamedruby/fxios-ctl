@@ -24,7 +24,7 @@ struct Narya: ParsableCommand {
             L10n.self,
             Lint.self,
             Nimbus.self,
-            Run.self,
+            // Run.self,
             Setup.self,
             Telemetry.self,
             Test.self,
