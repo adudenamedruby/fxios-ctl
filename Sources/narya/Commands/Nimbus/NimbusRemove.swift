@@ -127,6 +127,7 @@ extension Nimbus {
             // Summary
             Herald.declare("")
             if hasFailures {
+                // swiftlint:disable:next line_length
                 Herald.declare("Removal completed with errors. Please check the items marked as FAILED above and remove them manually.", asError: true, asConclusion: true)
             } else {
                 Herald.declare("Successfully removed feature '\(cleanName)'", asConclusion: true)

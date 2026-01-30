@@ -33,6 +33,7 @@ extension L10n {
                 """
         )
 
+        // swiftlint:disable line_length
         @Option(name: .long, help: "Product preset (firefox or focus). Required unless --project-path is specified.")
         var product: L10nProduct?
 
@@ -56,6 +57,8 @@ extension L10n {
 
         @Flag(name: .customLong("skip-widget-kit"), inversion: .prefixedNo, help: "Exclude WidgetKit strings from required translations (default from product).")
         var skipWidgetKit: Bool?
+
+        // swiftlint:enable line_length
 
         mutating func validate() throws {
             if product != nil && projectPath != nil {

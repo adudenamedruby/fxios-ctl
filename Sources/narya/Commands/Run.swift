@@ -39,6 +39,7 @@ struct Run: ParsableCommand {
         defaultSubcommand: nil
     )
 
+    // swiftlint:disable line_length
     // MARK: - Product Selection
 
     @Option(name: [.short, .long], help: "Product to build and run: firefox, focus, or klar.")
@@ -73,6 +74,8 @@ struct Run: ParsableCommand {
 
     @Flag(name: .long, help: "Print the commands instead of running them.")
     var expose = false
+
+    // swiftlint:enable line_length
 
     // MARK: - Run
 
@@ -198,6 +201,7 @@ struct Run: ParsableCommand {
 
     private func findBuiltApp(product: BuildProduct, repoRoot: URL) throws -> String {
         // The app is built to DerivedData
+        // swiftlint:disable:next line_length
         // Default location: ~/Library/Developer/Xcode/DerivedData/{ProjectName}-{hash}/Build/Products/{Configuration}-iphonesimulator/{AppName}.app
 
         let config = configuration ?? product.defaultConfiguration

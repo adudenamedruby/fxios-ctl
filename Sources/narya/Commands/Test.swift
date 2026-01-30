@@ -29,6 +29,7 @@ struct Test: ParsableCommand {
         defaultSubcommand: nil
     )
 
+    // swiftlint:disable line_length
     // MARK: - Product Selection
 
     @Option(name: [.short, .long], help: "Product to test: firefox, focus, or klar.")
@@ -72,6 +73,8 @@ struct Test: ParsableCommand {
 
     @Flag(name: .long, help: "Print the xcodebuild command instead of running it.")
     var expose = false
+
+    // swiftlint:enable line_length
 
     // MARK: - Run
 

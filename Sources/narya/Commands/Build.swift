@@ -38,6 +38,7 @@ struct Build: ParsableCommand {
         defaultSubcommand: nil
     )
 
+    // swiftlint:disable line_length
     // MARK: - Product Selection
 
     @Option(name: [.short, .long], help: "Product to build")
@@ -82,6 +83,8 @@ struct Build: ParsableCommand {
 
     @Flag(name: .long, help: "Print the xcodebuild command instead of running it.")
     var expose = false
+
+    // swiftlint:enable line_length
 
     // MARK: - Run
 
