@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "narya",
+    name: "fxios",
     platforms: [
         .macOS(.v14)
     ],
@@ -14,15 +14,15 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "narya",
+            name: "fxios",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Yams", package: "Yams"),
             ]
         ),
         .testTarget(
-            name: "naryaTests",
-            dependencies: ["narya"],
+            name: "fxiosTests",
+            dependencies: ["fxios"],
             exclude: ["Fixtures/L10n"]
         ),
     ]

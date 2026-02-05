@@ -1,6 +1,6 @@
 # Error Handling Guidelines
 
-This document describes error handling conventions for the narya codebase.
+This document describes error handling conventions for the fxios codebase.
 
 ## Error Type Conventions
 

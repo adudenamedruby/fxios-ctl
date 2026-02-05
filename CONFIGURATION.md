@@ -1,19 +1,19 @@
 # Configuration Reference
 
-This document provides a complete reference for `narya` configuration.
+This document provides a complete reference for `fxios` configuration.
 
 ## Overview
 
-`narya` uses a merged configuration system:
+`fxios` uses a merged configuration system:
 
 1. **CLI arguments** - Highest priority, always takes precedence
-2. **Project config** - `.narya.yaml` in repository root
+2. **Project config** - `.fxios.yaml` in repository root
 3. **Product presets** - Built-in defaults for Firefox/Focus (for l10n commands)
-4. **Bundled defaults** - Fallback values built into narya
+4. **Bundled defaults** - Fallback values built into fxios
 
 ## Configuration File
 
-The `.narya.yaml` file in your repository root configures narya's behavior.
+The `.fxios.yaml` file in your repository root configures fxios's behavior.
 
 ### All Fields
 
@@ -118,28 +118,28 @@ Requires either `--product` or `--project-path`.
 
 ```bash
 # Using product preset
-narya l10n export --product firefox --l10n-project-path ~/src/firefox-ios-l10n
+fxios l10n export --product firefox --l10n-project-path ~/src/firefox-ios-l10n
 
 # Using explicit project path
-narya l10n export --project-path ./Client.xcodeproj --l10n-project-path ~/src/firefox-ios-l10n
+fxios l10n export --project-path ./Client.xcodeproj --l10n-project-path ~/src/firefox-ios-l10n
 ```
 
 ### Focus L10n Import
 
 ```bash
 # Using product preset
-narya l10n import --product focus --l10n-project-path ~/src/focus-ios-l10n
+fxios l10n import --product focus --l10n-project-path ~/src/focus-ios-l10n
 
 # Override skip-widget-kit from preset
-narya l10n import --product focus --no-skip-widget-kit --l10n-project-path ~/src/focus-ios-l10n
+fxios l10n import --product focus --no-skip-widget-kit --l10n-project-path ~/src/focus-ios-l10n
 ```
 
 ### Single Locale Operations
 
 ```bash
 # Export only French
-narya l10n export --product firefox --locale fr --l10n-project-path ~/src/firefox-ios-l10n
+fxios l10n export --product firefox --locale fr --l10n-project-path ~/src/firefox-ios-l10n
 
 # Import only German
-narya l10n import --product focus --locale de --l10n-project-path ~/src/focus-ios-l10n
+fxios l10n import --product focus --locale de --l10n-project-path ~/src/focus-ios-l10n
 ```

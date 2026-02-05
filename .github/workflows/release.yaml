@@ -37,14 +37,14 @@ jobs:
 
       - name: Package
         run: |
-          BIN_NAME="narya"
+          BIN_NAME="fxios"
           OUT_DIR="dist"
           mkdir -p "$OUT_DIR"
           cp ".build/release/$BIN_NAME" "$OUT_DIR/$BIN_NAME"
           chmod +x "$OUT_DIR/$BIN_NAME"
 
           VERSION="${GITHUB_REF_NAME}" # e.g. v0.1.0
-          TARBALL="narya-${VERSION}-macos-${{ matrix.arch }}.tar.gz"
+          TARBALL="fxios-${VERSION}-macos-${{ matrix.arch }}.tar.gz"
           tar -C "$OUT_DIR" -czf "$TARBALL" "$BIN_NAME"
           shasum -a 256 "$TARBALL" | tee "${TARBALL}.sha256"
 
@@ -52,5 +52,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            narya-*.tar.gz
-            narya-*.tar.gz.sha256
+            fxios-*.tar.gz
+            fxios-*.tar.gz.sha256

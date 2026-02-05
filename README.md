@@ -1,8 +1,6 @@
-# 💍 `narya`
+# `fxios`
 
 A CLI tool for managing tasks in the [firefox-ios](https://github.com/mozilla-mobile/firefox-ios) repository.
-
-Named after Narya, the Ring of Fire, and one of the three Rings of the Elves, forged by Celebrimbor of the Gwaith-i-Mírdain, and later borne by Gandalf.
 
 **NOTE:** This tool is still in **BETA**
 
@@ -23,31 +21,31 @@ Provide a simple, indirect way for new developers to discover tooling used in Sw
 
 Bonus (slash most important) goal: **be dope by being ridiculously helpful**
 
-If a command doesn't materially achieve one of these goals & the bonus goal, it likely shouldn't be part of `narya`
+If a command doesn't materially achieve one of these goals & the bonus goal, it likely shouldn't be part of `fxios`
 
 ## Installation
 
-`narya` is available through brew.
+`fxios` is available through brew.
 
 ```bash
-brew tap adudenamedruby/narya
-brew install narya
+brew tap adudenamedruby/fxios
+brew install fxios
 ```
 
-**NOTE:** installing `narya` will also install several dependencies through `brew`, that are used for firefox-ios:
+**NOTE:** installing `fxios` will also install several dependencies through `brew`, that are used for firefox-ios:
 
 - [swiftlint](https://github.com/realm/SwiftLint)
 - [node](https://nodejs.org/en)
 
 ## Configuration
 
-`narya` uses a `.narya.yaml` file in the firefox-ios repository root for configuration and validation that it's in the correct repository.
+`fxios` uses a `.fxios.yaml` file in the firefox-ios repository root for configuration and validation that it's in the correct repository.
 
 For the complete configuration reference, see [CONFIGURATION.md](CONFIGURATION.md).
 
 ### Quick Start
 
-A minimal `.narya.yaml` only needs the required `project` field:
+A minimal `.fxios.yaml` only needs the required `project` field:
 
 ```yaml
 project: firefox-ios
@@ -64,17 +62,17 @@ To use this with the firefox-ios, repo, you will also need the dependencies from
 
 ### Contributing
 
-Contributing to `narya` is easy: please fork the repo, make your changes, and submit a PR.
+Contributing to `fxios` is easy: please fork the repo, make your changes, and submit a PR.
 
-For a discussion of the design thoughts behind `narya`, and what to add, please first read the [DESIGN_GUIDELINES.md](DESIGN_GUIDELINES.md) document.
+For a discussion of the design thoughts behind `fxios`, and what to add, please first read the [DESIGN_GUIDELINES.md](DESIGN_GUIDELINES.md) document.
 
 For details on how commands are structured and how to add new ones, see [COMMAND_ARCHITECTURE.md](COMMAND_ARCHITECTURE.md).
 
 ### Project structure
 
 ```
-Sources/narya/
-├── narya.swift                 # Entry point (@main)
+Sources/fxios/
+├── fxios.swift                 # Entry point (@main)
 ├── Core/                       # Where tools and utilities should be placed
 │   ├── CommandHelpers.swift    # Shared utilities for command implementations
 │   ├── Configuration.swift     # App constants (name, version, etc.)
@@ -82,7 +80,7 @@ Sources/narya/
 │   ├── Herald.swift            # Formatted output handling
 │   ├── Logger.swift            # Debug logging utility (enabled via --debug)
 │   ├── Products.swift          # Build product definitions (Firefox, Focus, Klar)
-│   ├── RepoDetector.swift      # Validates firefox-ios repository, loads .narya.yaml
+│   ├── RepoDetector.swift      # Validates firefox-ios repository, loads .fxios.yaml
 │   ├── ShellRunner.swift       # Shell command execution
 │   ├── SimulatorManager.swift  # iOS Simulator detection and management
 │   ├── StringUtils.swift       # String transformation utilities
@@ -97,7 +95,7 @@ Sources/narya/
 swift build
 
 # Run locally
-swift run narya
+swift run fxios
 ```
 
 ### Testing Notes
@@ -119,11 +117,11 @@ Any new feature or command must include corresponding tests. Tests should cover:
 - Error handling for invalid inputs
 - Edge cases
 
-See existing test files in `Tests/naryaTests/` for examples.
+See existing test files in `Tests/fxiosTests/` for examples.
 
-### Outputting Status from `narya`
+### Outputting Status from `fxios`
 
-All `narya` output is handled by the `Herald`. To maintain clarity between `narya`'s output and the output of tools/commands it wraps, we have a standard way of presenting output.
+All `fxios` output is handled by the `Herald`. To maintain clarity between `fxios`'s output and the output of tools/commands it wraps, we have a standard way of presenting output.
 
 ```swift
 static func declare(
@@ -193,7 +191,7 @@ The `Herald` also has a `raw()` function if you need to print out any text. This
 
 ### Error Handling
 
-`narya` follows consistent error handling patterns to ensure errors are never silently swallowed and always provide useful context. For detailed guidelines, see [ERROR_HANDLING.md](ERROR_HANDLING.md).
+`fxios` follows consistent error handling patterns to ensure errors are never silently swallowed and always provide useful context. For detailed guidelines, see [ERROR_HANDLING.md](ERROR_HANDLING.md).
 
 Key principles:
 
@@ -206,35 +204,35 @@ Key principles:
 Pass the `--debug` flag to any command to enable detailed logging output:
 
 ```bash
-narya --debug doctor
+fxios --debug doctor
 ```
 
-Debug output goes to stderr and includes timestamps, file locations, and underlying error details. This is useful for troubleshooting issues or understanding `narya`'s behavior.
+Debug output goes to stderr and includes timestamps, file locations, and underlying error details. This is useful for troubleshooting issues or understanding `fxios`'s behavior.
 
 ## Currently Supported Commands
 
 | Command           | Description                                                  |
 | ----------------- | ------------------------------------------------------------ |
-| `narya bootstrap` | Bootstrap the repository for Firefox or Focus development    |
-| `narya build`     | Build Firefox, Focus, or Klar for development                |
-| `narya clean`     | Clean up cached or generated files                           |
-| `narya doctor`    | Check development environment for required tools             |
-| `narya l10n`      | Localization tools for managing XLIFF files and translations |
-| `narya lint`      | Run SwiftLint on the codebase                                |
-| `narya nimbus`    | Manage Nimbus feature configuration files                    |
-| `narya run`       | Build and launch in the iOS Simulator                        |
-| `narya setup`     | Clone and bootstrap the firefox-ios repository               |
-| `narya telemetry` | Update telemetry configuration files                         |
-| `narya test`      | Run tests for Firefox, Focus, or Klar                        |
-| `narya version`   | Display or update version numbers across the repository      |
+| `fxios bootstrap` | Bootstrap the repository for Firefox or Focus development    |
+| `fxios build`     | Build Firefox, Focus, or Klar for development                |
+| `fxios clean`     | Clean up cached or generated files                           |
+| `fxios doctor`    | Check development environment for required tools             |
+| `fxios l10n`      | Localization tools for managing XLIFF files and translations |
+| `fxios lint`      | Run SwiftLint on the codebase                                |
+| `fxios nimbus`    | Manage Nimbus feature configuration files                    |
+| `fxios run`       | Build and launch in the iOS Simulator                        |
+| `fxios setup`     | Clone and bootstrap the firefox-ios repository               |
+| `fxios telemetry` | Update telemetry configuration files                         |
+| `fxios test`      | Run tests for Firefox, Focus, or Klar                        |
+| `fxios version`   | Display or update version numbers across the repository      |
 
 #### `bootstrap`
 
-Bootstraps the repository for development. By default, bootstraps the product specified in `.narya.yaml` (`default_bootstrap`), or Firefox if not configured.
+Bootstraps the repository for development. By default, bootstraps the product specified in `.fxios.yaml` (`default_bootstrap`), or Firefox if not configured.
 
 #### `build`
 
-Builds Firefox, Focus, or Klar for development using xcodebuild. By default, builds the product specified in `.narya.yaml` (`default_build_product`), or Firefox if not configured.
+Builds Firefox, Focus, or Klar for development using xcodebuild. By default, builds the product specified in `.fxios.yaml` (`default_build_product`), or Firefox if not configured.
 
 The simulator is auto-detected to use the latest iOS version with a standard iPhone model (non-Pro, non-Max).
 
@@ -252,7 +250,7 @@ Checks performed:
 
 - **Required tools**: git, node, npm, swift, xcodebuild, xcode-select, simctl
 - **Optional tools**: swiftlint (reports status but won't flag as issue if missing)
-- **Repository context** (when run from firefox-ios): validates `.narya.yaml`, checks git hooks installation, shows configured defaults
+- **Repository context** (when run from firefox-ios): validates `.fxios.yaml`, checks git hooks installation, shows configured defaults
 
 #### `l10n`
 
@@ -266,13 +264,13 @@ For `export` and `import`, you must specify either `--product` or `--project-pat
 
 ```bash
 # Export Firefox strings (using product preset)
-narya l10n export --product firefox --l10n-project-path /path/to/l10n-repo
+fxios l10n export --product firefox --l10n-project-path /path/to/l10n-repo
 
 # Import Focus translations (using product preset)
-narya l10n import --product focus --l10n-project-path /path/to/l10n-repo
+fxios l10n import --product focus --l10n-project-path /path/to/l10n-repo
 
 # Export with explicit project path
-narya l10n export --project-path ./Client.xcodeproj --l10n-project-path /path/to/l10n-repo
+fxios l10n export --project-path ./Client.xcodeproj --l10n-project-path /path/to/l10n-repo
 ```
 
 These commands handle locale code mapping between Xcode and Pontoon formats, filtering of non-translatable keys, required translation validation, and comment overrides from `l10n_comments.txt`.
@@ -291,7 +289,7 @@ Manages Nimbus feature flags across the firefox-ios codebase. Subcommands:
 
 #### `run`
 
-Builds and launches Firefox, Focus, or Klar in the iOS Simulator. This is equivalent to running `narya build` followed by installing and launching the app.
+Builds and launches Firefox, Focus, or Klar in the iOS Simulator. This is equivalent to running `fxios build` followed by installing and launching the app.
 
 Please read [Simulator Shorthand](#simulator-shorthand) for an explanation of the `--sim` flag.
 
@@ -301,7 +299,7 @@ Updates Glean telemetry configuration files.
 
 #### `test`
 
-Runs tests for Firefox, Focus, or Klar using xcodebuild. By default, runs unit tests for the product specified in `.narya.yaml` (`default_build_product`), or Firefox if not configured.
+Runs tests for Firefox, Focus, or Klar using xcodebuild. By default, runs unit tests for the product specified in `.fxios.yaml` (`default_build_product`), or Firefox if not configured.
 
 Test plans available:
 
@@ -360,4 +358,4 @@ Matching behavior precision notes:
 
 ## License
 
-[Mozilla Public License 2.0](https://github.com/adudenamedruby/narya?tab=MPL-2.0-1-ov-file)
+[Mozilla Public License 2.0](https://github.com/adudenamedruby/fxios?tab=MPL-2.0-1-ov-file)

@@ -1,10 +1,10 @@
 # Command Architecture
 
-This document describes the architecture and patterns used for implementing commands in `narya`. It's intended for contributors adding new commands or modifying existing ones.
+This document describes the architecture and patterns used for implementing commands in `fxios`. It's intended for contributors adding new commands or modifying existing ones.
 
 ## Overview
 
-`narya` uses Apple's [Swift ArgumentParser](https://github.com/apple/swift-argument-parser) framework for command-line parsing. The main entry point is `Sources/narya/narya.swift`, which defines the root `Narya` command and registers all subcommands.
+`fxios` uses Apple's [Swift ArgumentParser](https://github.com/apple/swift-argument-parser) framework for command-line parsing. The main entry point is `Sources/fxios/fxios.swift`, which defines the root `Fxios` command and registers all subcommands.
 
 ## Command Patterns
 
@@ -27,7 +27,7 @@ struct Doctor: ParsableCommand {
 }
 ```
 
-**File location:** `Sources/narya/Commands/Doctor.swift`
+**File location:** `Sources/fxios/Commands/Doctor.swift`
 
 ### Commands with Subcommands
 
@@ -143,7 +143,7 @@ mutating func run() throws {
 
 ### Key Points
 
-- **Repository validation:** Most commands that operate on firefox-ios call `RepoDetector.requireValidRepo()` first. This validates the `.narya.yaml` config file exists and returns the repo root and merged configuration.
+- **Repository validation:** Most commands that operate on firefox-ios call `RepoDetector.requireValidRepo()` first. This validates the `.fxios.yaml` config file exists and returns the repo root and merged configuration.
 
 - **Tool checking:** Use `ToolChecker.require___()` methods to validate required tools are available before attempting to use them.
 
@@ -159,7 +159,7 @@ mutating func run() throws {
 | ---------------- | -------------------------------------------- | -------------------------------------------------------- |
 | `--expose`       | Print shell commands instead of running them | Use `Herald.raw()` with `CommandHelpers.formatCommand()` |
 | `--quiet` / `-q` | Minimize output (errors and summary only)    | Check flag before `Herald.declare()` calls               |
-| `--debug`        | Enable detailed logging                      | Handled globally in `narya.swift`                        |
+| `--debug`        | Enable detailed logging                      | Handled globally in `fxios.swift`                        |
 
 ### Product Selection
 
@@ -208,7 +208,7 @@ enum BuildError: Error, CustomStringConvertible {
     var description: String {
         switch self {
         case .projectNotFound(let path):
-            return "Project not found at \(path). Run 'narya setup' first."
+            return "Project not found at \(path). Run 'fxios setup' first."
         case .buildFailed(let exitCode):
             return "Build failed with exit code \(exitCode)."
         }
@@ -240,7 +240,7 @@ See [ERROR_HANDLING.md](ERROR_HANDLING.md) for complete guidelines.
 
 ## Implementing the `--expose` Flag
 
-The `--expose` flag prints the underlying shell commands instead of running them. This helps users understand what `narya` does and allows them to run commands manually.
+The `--expose` flag prints the underlying shell commands instead of running them. This helps users understand what `fxios` does and allows them to run commands manually.
 
 ```swift
 @Flag(name: .long, help: "Print the xcodebuild command instead of running it.")
@@ -303,7 +303,7 @@ Shared utilities for command implementations:
 
 ### Herald
 
-Formatted output handling. See the [README](README.md#outputting-status-from-narya) for complete documentation.
+Formatted output handling. See the [README](README.md#outputting-status-from-fxios) for complete documentation.
 
 ```swift
 Herald.declare("Starting build...", isNewCommand: true)
@@ -338,7 +338,7 @@ Logger.error("Command failed", error: error)
 
 ### Step 1: Create the Command File
 
-For a simple command, create `Sources/narya/Commands/MyCommand.swift`:
+For a simple command, create `Sources/fxios/Commands/MyCommand.swift`:
 
 ```swift
 // This Source Code Form is subject to the terms of the Mozilla Public
@@ -384,7 +384,7 @@ struct MyCommand: ParsableCommand {
 
 ### Step 2: Register the Command
 
-Add your command to the subcommands array in `Sources/narya/narya.swift`:
+Add your command to the subcommands array in `Sources/fxios/fxios.swift`:
 
 ```swift
 subcommands: [
@@ -398,11 +398,11 @@ subcommands: [
 
 ### Step 3: Add Tests
 
-Create `Tests/naryaTests/MyCommandTests.swift`:
+Create `Tests/fxiosTests/MyCommandTests.swift`:
 
 ```swift
 import Testing
-@testable import narya
+@testable import fxios
 
 @Suite("MyCommand Tests")
 struct MyCommandTests {
@@ -426,7 +426,7 @@ Run tests with `swift test --no-parallel`.
 Add an entry to the "Currently Supported Commands" table in the README:
 
 ```markdown
-| `narya mycommand` | Short description of what it does |
+| `fxios mycommand` | Short description of what it does |
 ```
 
 Add a detailed section if the command has significant options or behavior to explain.

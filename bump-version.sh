@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-FILE="Sources/narya/Core/Configuration.swift"
+FILE="Sources/fxios/Core/Configuration.swift"
 
 die() {
     echo "Error: $*" >&2
