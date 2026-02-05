@@ -136,19 +136,19 @@ static func declare(
 
 - `message` - The text to display
 - `asError` - Adds 💥 to indicate an error or warning
-- `isNewCommand` - Resets state and uses 💍 prefix (use at the start of each command)
-- `asConclusion` - Uses 💍 prefix for the final message of a command
+- `isNewCommand` - Resets state and uses 🦊 prefix (use at the start of each command)
+- `asConclusion` - Uses 🦊 prefix for the final message of a command
 
 **Prefix Logic:**
 
 | Context              | `asError` | Output Prefix |
 | -------------------- | --------- | ------------- |
-| `isNewCommand: true` | false     | 💍            |
-| `isNewCommand: true` | true      | 💍 💥         |
+| `isNewCommand: true` | false     | 🦊            |
+| `isNewCommand: true` | true      | 🦊 💥         |
 | Continuation         | false     | ▒             |
 | Continuation         | true      | ▒ 💥          |
-| `asConclusion: true` | false     | 💍            |
-| `asConclusion: true` | true      | 💍 💥         |
+| `asConclusion: true` | false     | 🦊            |
+| `asConclusion: true` | true      | 🦊 💥         |
 | After conclusion     | (ignored) | ▒             |
 
 **Multi-line handling:**
@@ -165,13 +165,13 @@ static func declare(
 **Example output:**
 
 ```
-💍 Starting build...
+🦊 Starting build...
 ▒ Compiling module A
 ▒ Compiling module B
 ▒ 💥 Warning: deprecated API usage
 ▒ ▒ in file Foo.swift:42
 ▒ Compiling module C
-💍 Build complete!
+🦊 Build complete!
 ```
 
 This is produced by:

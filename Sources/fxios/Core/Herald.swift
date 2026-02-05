@@ -5,7 +5,7 @@
 import Foundation
 
 /// Handles formatted output for fxios commands.
-/// The first line of output uses 💍, subsequent lines use ▒
+/// The first line of output uses 🦊, subsequent lines use ▒
 enum Herald {
     private static let indentChar = "▒"
 
@@ -15,9 +15,9 @@ enum Herald {
     /// Declares a message with formatted prefix based on context.
     ///
     /// Output prefixes:
-    /// - `isNewCommand: true`: `💍` (or `💍 💥` if asError)
+    /// - `isNewCommand: true`: `🦊` (or `🦊 💥` if asError)
     /// - Normal continuation: `▒` (or `▒ 💥` if asError)
-    /// - First conclusion: `💍` (or `💍 💥` if asError)
+    /// - First conclusion: `🦊` (or `🦊 💥` if asError)
     /// - Post-conclusion: `▒` (asError and asConclusion ignored)
     ///
     /// Multi-line messages use `▒ ▒` prefix for lines after the first.
@@ -25,8 +25,8 @@ enum Herald {
     /// - Parameters:
     ///   - message: The message to display
     ///   - asError: If true, adds 💥 to indicate an error/warning
-    ///   - isNewCommand: If true, resets state and uses 💍 prefix
-    ///   - asConclusion: If true, uses 💍 prefix (first time only)
+    ///   - isNewCommand: If true, resets state and uses 🦊 prefix
+    ///   - asConclusion: If true, uses 🦊 prefix (first time only)
     static func declare(
         _ message: String,
         asError: Bool = false,
@@ -46,12 +46,12 @@ enum Herald {
             if index == 0 {
                 // First line of this message
                 if isNewCommand {
-                    prefix = asError ? "💍 💥" : "💍"
+                    prefix = asError ? "🦊 💥" : "🦊"
                 } else if hadConclusion {
                     // After a conclusion, subsequent calls are normal continuation
                     prefix = indentChar
                 } else if asConclusion {
-                    prefix = asError ? "💍 💥" : "💍"
+                    prefix = asError ? "🦊 💥" : "🦊"
                 } else {
                     prefix = asError ? "\(indentChar) 💥" : indentChar
                 }
