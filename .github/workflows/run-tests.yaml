@@ -1,0 +1,41 @@
+name: Run Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run-tests:
+    runs-on: macos-15
+
+    env:
+      FXIOS_BIN: $GITHUB_WORKSPACE/.build/debug/fxios
+
+    steps:
+      - name: Checkout fxios-ctl
+        uses: actions/checkout@v4
+
+      - name: Install Swift 6.2.0
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.2.0"
+
+      - name: Verify Swift
+        run: swift --version
+
+      - name: Initialize CoreSimulator service
+        run: |
+          # The first simctl call can be slow as it starts the service
+          # Run this separately so test timeout doesn't get hit
+          xcrun simctl list devices
+
+      - name: Run tests
+        run: |
+          swift test --no-parallel
