@@ -88,17 +88,23 @@ Sources/fxios/
 └── Commands/
 ```
 
-### Dev Notes
+### Development Tips
 
 ```bash
 # Build
 swift build
 
-# Run locally
+# Run in the fxios-ctl folder
 swift run fxios
 ```
 
-### Testing Notes
+To test your local changes in a `firefox-ios` repo, it's recommened to create an alias, and using that after running `swift build` in the `fixios-ctl` repo to build your latest changes.
+
+For example: `alias fxtest=path/to/fxios-ctl/.build/arm64-apple-macosx/debug/fxios`
+
+If you're on an Intel machine, you might have to have a slightly different path.
+
+### Unit Testing Notes
 
 Tests use the modern Swift Testing framework (`@Test`, `@Suite`, `#expect`).
 
